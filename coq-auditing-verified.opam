@@ -1,0 +1,36 @@
+opam-version: "2.0"
+name: "coq-auditing-verified"
+version: "dev"
+synopsis: "Verified multiplicative degradation of risk-limiting audits"
+description: """
+Machine-checked proof that per-contest assurance in risk-limiting
+audits degrades multiplicatively. Formalized over MathComp realType
+with MathComp Analysis logarithms and real exponentiation.
+"""
+maintainer: "Charles C. Norton <machineelv@gmail.com>"
+authors: ["Charles C. Norton"]
+license: "MIT"
+homepage: "https://github.com/CharlesCNorton/auditing-verified"
+bug-reports: "https://github.com/CharlesCNorton/auditing-verified/issues"
+dev-repo: "git+https://github.com/CharlesCNorton/auditing-verified.git"
+
+depends: [
+  "rocq-core" {>= "9.0" & < "9.1~"}
+  "coq-mathcomp-ssreflect" {>= "2.5"}
+  "coq-mathcomp-algebra" {>= "2.5"}
+  "coq-mathcomp-analysis" {>= "1.15"}
+]
+
+build: [
+  [make "-j%{jobs}%"]
+]
+install: []
+
+tags: [
+  "keyword:risk-limiting audits"
+  "keyword:election auditing"
+  "keyword:formal verification"
+  "keyword:MathComp"
+  "category:Mathematics/Real Analysis"
+  "logpath:Auditing"
+]
