@@ -469,6 +469,29 @@ by split; [exact: ballot_F_refl | exact: ballot_F_sym |
            exact: ballot_F_trans | exact: ballot_F_refine].
 Qed.
 
+(** [ballot_plr n f]: the product likelihood ratio at step [n]
+    computed directly from a finite ballot sequence [{ffun 'I_N -> bool}].
+    Requires [n <= N]. *)
+Definition ballot_plr (n : nat) (Hn : (n <= N)%N) (f : {ffun 'I_N -> bool}) : R :=
+  \prod_(i < n) lr p (f (Ordinal (leq_trans (ltn_ord i) Hn))).
+
+(** Simplification: [ballot_plr] at step [n] is a product of [lr]
+    applied to the first [n] coordinates. When [i : 'I_n] and
+    [n <= N], the ordinal injection maps [i] into ['I_N]. *)
+(** [ballot_plr n] is adapted to [ballot_F n]: if [x] and [y] agree
+    on the first [n] positions, then [ballot_plr n x = ballot_plr n y]. *)
+Lemma ballot_plr_adapted (n : nat) (Hn : (n <= N)%N)
+    (x y : {ffun 'I_N -> bool}) :
+  ballot_F n x y ->
+  ballot_plr Hn x = ballot_plr Hn y.
+Proof.
+move=> /forallP Hxy.
+rewrite /ballot_plr; apply: eq_bigr => i _ /=.
+set j := Ordinal (leq_trans (ltn_ord i) Hn).
+have Hji : (j < n)%N := ltn_ord i.
+by rewrite (eqP (implyP (Hxy j) Hji)).
+Qed.
+
 (** The product measure normalizes to 1. Uses [bigA_distr_bigA] to
     factor the sum over functions into a product of per-coordinate sums,
     each of which equals 1 by [ballot_mu_sum1]. *)
