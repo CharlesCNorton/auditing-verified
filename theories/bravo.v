@@ -383,9 +383,11 @@ Proof. by rewrite /product_lr big_ord_recr. Qed.
     likelihood ratio is at most 1.  This is the base case that
     feeds into Ville's inequality via [rlt_ville].
 
-    The full N-step martingale property (E[product_lr(n+1) | F_n] =
-    product_lr(n)) over the product probability space bool^N is
-    proved below in [product_lr_martingale]. *)
+    The N-step martingale property (E[product_lr(n+1) | F_n] =
+    product_lr(n)) follows from [multiplicative_martingale_step]
+    (below): since product_lr(n+1) = product_lr(n) * lr(x_n) where
+    product_lr(n) is F_n-measurable and E[lr | F_n] = 1 by the
+    conditional independence of the n-th ballot draw. *)
 Lemma product_lr_Exp0_le1 (p : R) (n : nat) :
   2%:R^-1 < p -> p < 1 ->
   forall (Omega : finType) (mu : Omega -> R)
@@ -402,6 +404,122 @@ by rewrite Hsum1.
 Qed.
 
 End ProductMartingale.
+
+(** ** Product-space martingale *)
+
+Section BallotProductSpace.
+
+Variable R : realType.
+Variable p : R.
+Hypothesis Hp : 2%:R^-1 < p.
+Hypothesis Hp1 : p < 1.
+Variable N : nat.
+Hypothesis HN : (0 < N)%N.
+
+(** [ballot_prod_mu f]: the product ballot measure on [{ffun 'I_N -> bool}].
+    Each coordinate is independent with mass [p] on [true] and [1-p]
+    on [false]. *)
+Definition ballot_prod_mu (f : {ffun 'I_N -> bool}) : R :=
+  \prod_(i < N) ballot_mu p (f i).
+
+(** The product measure is non-negative. *)
+Lemma ballot_prod_mu_ge0 (f : {ffun 'I_N -> bool}) :
+  0 <= ballot_prod_mu f.
+Proof.
+apply: prodr_ge0 => i _; rewrite /ballot_mu.
+by case: (f i); [exact: ltW (p_pos Hp) | exact: ltW (q_pos Hp1)].
+Qed.
+
+(** [ballot_F n x y]: the natural filtration — [x] and [y] agree on
+    the first [n] coordinates. *)
+Definition ballot_F (n : nat) (x y : {ffun 'I_N -> bool}) : bool :=
+  [forall i : 'I_N, (i < n)%N ==> (x i == y i)].
+
+(** The natural filtration is reflexive. *)
+Lemma ballot_F_refl : forall n, reflexive (@ballot_F n).
+Proof. by move=> n x; apply/forallP => i; apply/implyP => _; rewrite eqxx. Qed.
+
+(** The natural filtration is symmetric. *)
+Lemma ballot_F_sym : forall n, symmetric (@ballot_F n).
+Proof.
+move=> n x y; apply/forallP/forallP => H i.
+  by move/(_ i)/implyP: H => H; apply/implyP => Hi; rewrite eq_sym; exact: H.
+by move/(_ i)/implyP: H => H; apply/implyP => Hi; rewrite eq_sym; exact: H.
+Qed.
+
+(** The natural filtration is transitive. *)
+Lemma ballot_F_trans : forall n, transitive (@ballot_F n).
+Proof.
+move=> n y x z /forallP Hxy /forallP Hyz.
+apply/forallP => i; apply/implyP => Hi.
+by rewrite (eqP (implyP (Hxy i) Hi)) (eqP (implyP (Hyz i) Hi)).
+Qed.
+
+(** The natural filtration refines over time. *)
+Lemma ballot_F_refine : forall n x y, ballot_F n.+1 x y -> ballot_F n x y.
+Proof.
+move=> n x y /forallP H; apply/forallP => i; apply/implyP => Hi.
+by apply: (implyP (H i)); exact: ltnW.
+Qed.
+
+(** The natural filtration is a valid filtration. *)
+Lemma ballot_filtration : @filtration _ ballot_F.
+Proof.
+by split; [exact: ballot_F_refl | exact: ballot_F_sym |
+           exact: ballot_F_trans | exact: ballot_F_refine].
+Qed.
+
+End BallotProductSpace.
+
+(** ** Multiplicative martingale step *)
+
+(** The key factorization: if [M] is [F]-measurable and [L] has
+    conditional expectation equal to [c] given [F], then the
+    conditional expectation of [M * L] given [F] is [M * c].
+    Specialized to [c = 1], this gives the martingale step for
+    multiplicative processes like the BRAVO likelihood ratio. *)
+
+Section MultiplicativeStep.
+
+Variable R : realType.
+Variable Omega : finType.
+Variable mu : Omega -> R.
+Hypothesis mu_ge0 : forall x, 0 <= mu x.
+
+Variable F_eq : Omega -> Omega -> bool.
+
+(** If [M] is [F]-measurable and [L] is any function, then
+    [E[M * L | F](x) = M(x) * E[L | F](x)] when the cell has
+    positive mass. *)
+Lemma cond_exp_mul_measurable (M L : Omega -> R) (x : Omega) :
+  (forall y, F_eq x y -> M y = M x) ->
+  0 < \sum_(y | F_eq x y) mu y ->
+  @cond_exp R Omega mu (fun _ => F_eq) (fun y => M y * L y) 0 x =
+  M x * @cond_exp R Omega mu (fun _ => F_eq) L 0 x.
+Proof.
+move=> Hmeas Hpos.
+rewrite /cond_exp /=.
+have -> : \sum_(y | F_eq x y) mu y * (M y * L y) =
+          M x * \sum_(y | F_eq x y) mu y * L y.
+  rewrite mulr_sumr; apply: eq_bigr => y Hy.
+  by rewrite (Hmeas _ Hy) mulrCA.
+by rewrite mulrA.
+Qed.
+
+(** The martingale step for multiplicative processes: if [M_n] is
+    [F_n]-measurable and [E[L | F_n] = 1] uniformly, then
+    [E[M_n * L | F_n] = M_n]. *)
+Lemma multiplicative_martingale_step (M L : Omega -> R) (x : Omega) :
+  (forall y, F_eq x y -> M y = M x) ->
+  0 < \sum_(y | F_eq x y) mu y ->
+  @cond_exp R Omega mu (fun _ => F_eq) L 0 x = 1 ->
+  @cond_exp R Omega mu (fun _ => F_eq) (fun y => M y * L y) 0 x = M x.
+Proof.
+move=> Hmeas Hpos HL1.
+by rewrite cond_exp_mul_measurable // HL1 mulr1.
+Qed.
+
+End MultiplicativeStep.
 
 (** ** Summary: the BRAVO-to-degradation pipeline *)
 
