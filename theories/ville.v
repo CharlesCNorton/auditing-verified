@@ -730,6 +730,38 @@ Qed.
 
 End FiltrationPartition.
 
+(** ** Partition-derived filtrations *)
+
+(** A refining partition sequence induces a valid filtration via
+    [partition_equiv].  This bridges the partition-based view of
+    information refinement (common in discrete probability textbooks)
+    to the equivalence-relation-based formulation used by the
+    supermartingale theory in [DiscreteVille].  Once [partition_filtration]
+    produces a [filtration], all results — Ville's inequality, optional
+    stopping, Doob's maximal inequality — apply unchanged. *)
+
+Section PartitionFiltration.
+
+Variable Omega : finType.
+
+Lemma partition_filtration (P : nat -> {set {set Omega}}) :
+  (forall n, cover (P n) = [set: Omega]) ->
+  (forall n, trivIset (P n)) ->
+  (forall n A, A \in P n.+1 -> exists2 B, B \in P n & A \subset B) ->
+  @filtration Omega (fun n => partition_equiv (P n)).
+Proof.
+move=> Hcover Htriv Hrefine; split.
+- by move=> n; exact: partition_equiv_refl.
+- by move=> n; exact: partition_equiv_sym.
+- by move=> n; exact: partition_equiv_trans.
+- move=> n x y /existsP [A /andP [HA /andP [HxA HyA]]].
+  have [B HB Hsub] := Hrefine n A HA.
+  apply/existsP; exists B; apply/andP; split; first exact: HB.
+  by apply/andP; split; apply: (subsetP Hsub).
+Qed.
+
+End PartitionFiltration.
+
 Print Assumptions ville_ineq.
 Print Assumptions tower_property.
 Print Assumptions optional_stopping.

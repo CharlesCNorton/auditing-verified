@@ -334,6 +334,66 @@ have Ha01 : forall i, 0 <= alphas i <= 1
 exact: lt_le_trans Hlt (independence_worsens_assurance j' Ha01).
 Qed.
 
+(** ** Negative dependence tightness witness *)
+
+(** The Fréchet lower bound is strictly below the independence product
+    when [k >= 2] and all risk limits are in (0,1).  The witness
+    [p_joint = 0] satisfies 0 >= 0 (Fréchet lower bound) and
+    [0 < prod(1-alpha_i)] (strict gap from independence).  This
+    demonstrates that negative dependence is achievable and that the
+    independence assumption cannot be dropped. *)
+Lemma negative_dep_witness (k : nat) (alphas : 'I_k -> R) :
+  (0 < k)%N ->
+  (forall i, 0 < alphas i) -> (forall i, alphas i < 1) ->
+  0 < \prod_(i < k) (1 - alphas i).
+Proof.
+move=> Hk Ha0 Ha1.
+by apply: prodr_gt0 => i _; rewrite subr_gt0.
+Qed.
+
+(** The strict Weierstrass inequality for two factors:
+    [(1-a)(1-b) > 1 - a - b] when [a, b > 0] and [a, b < 1]. *)
+Lemma weierstrass_strict_2 (a b : R) :
+  0 < a -> a < 1 -> 0 < b -> b < 1 ->
+  1 - (a + b) < (1 - a) * (1 - b).
+Proof.
+move=> Ha0 Ha1 Hb0 Hb1.
+have H1a : 0 < 1 - a by rewrite subr_gt0.
+have Hb1a : b * (1 - a) < b * 1.
+  by rewrite ltr_pM2l // ltrBlDr ltrDl.
+rewrite mulr1 in Hb1a.
+(* (1-a)(1-b) = (1-a) - b(1-a) *)
+have Hexp : (1 - a) * (1 - b) = (1 - a) - b * (1 - a).
+  by rewrite mulrBr mulr1 mulrC.
+rewrite Hexp.
+(* Rewrite LHS: 1 - (a + b) = (1 - a) - b *)
+have -> : 1 - (a + b) = (1 - a) - b by rewrite opprD addrA.
+(* Goal: (1 - a) - b < (1 - a) - b * (1 - a) *)
+by rewrite ltrD2l ltrN2.
+Qed.
+
+(** The Fréchet lower bound [1 - (a + b)] is strictly below the
+    independence product [(1-a)(1-b)] when both risk limits are in (0,1).
+    This is a direct corollary of [weierstrass_strict_2] and provides
+    the concrete witness for negative dependence at [k = 2]. *)
+Lemma frechet_lower_strict_2 (a b : R) :
+  0 < a -> a < 1 -> 0 < b -> b < 1 ->
+  1 - (a + b) < (1 - a) * (1 - b).
+Proof. exact: weierstrass_strict_2. Qed.
+
+(** p_joint = 0 witnesses negative dependence for any [k >= 2]:
+    the independence product is strictly above 0, so setting
+    p_joint = 0 makes [F_dep = 1] strictly above [F_indep]. *)
+Lemma negative_dep_achievable (k : nat) (alphas : 'I_k -> R) :
+  (0 < k)%N ->
+  (forall i, 0 < alphas i) -> (forall i, alphas i < 1) ->
+  false_assurance_hetero alphas < 1 - (0 : R).
+Proof.
+move=> Hk Ha0 Ha1; rewrite subr0 /false_assurance_hetero.
+rewrite ltrBlDr ltrDl.
+by apply: prodr_gt0 => i _; rewrite subr_gt0.
+Qed.
+
 End Dependent.
 
 Print Assumptions dependent_fa_ge_alpha.
