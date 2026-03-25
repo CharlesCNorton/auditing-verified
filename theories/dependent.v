@@ -396,6 +396,48 @@ Qed.
 
 End Dependent.
 
+(** The strict Weierstrass product inequality for general [k >= 2]:
+    [1 - sum alpha_i < prod(1 - alpha_i)] when all [alpha_i] are in (0,1).
+    Proved outside the section to avoid dependent-type issues with
+    [big_ord_recr] on section variables. *)
+Lemma frechet_lower_strict_general (R : realType) (k : nat)
+    (alphas : 'I_k.+2 -> R) :
+  (forall i, 0 < alphas i) -> (forall i, alphas i < 1) ->
+  1 - \sum_(i < k.+2) alphas i < \prod_(i < k.+2) (1 - alphas i).
+Proof.
+move=> Ha0 Ha1.
+have Ha01 : forall i, 0 <= alphas i <= 1
+  by move=> i; apply/andP; split; [exact: ltW | exact: ltW].
+(* Peel off the last factor *)
+rewrite big_ord_recr [X in _ < X]big_ord_recr /=.
+set P := \prod_(i < k.+1) (1 - alphas (widen_ord (leqnSn k.+1) i)).
+set S := \sum_(i < k.+1) alphas (widen_ord (leqnSn k.+1) i).
+set a := alphas ord_max.
+have Ha_pos : 0 < a := Ha0 ord_max.
+have Ha_lt1 : a < 1 := Ha1 ord_max.
+have HS_pos : 0 < S.
+  rewrite /S (bigD1 (ord0 : 'I_k.+1)) //=.
+  apply: ltr_pwDl; first exact: Ha0.
+  by apply: sumr_ge0 => i _; exact: ltW.
+have HW : 1 - S <= P.
+  exact: (@weierstrass_product R k.+1
+    (fun i => alphas (widen_ord (leqnSn k.+1) i))
+    (fun i => Ha01 _)).
+(* Case split: if S >= 1, the LHS is <= 0 < RHS (trivial).
+   If S < 1, use weierstrass_strict_2. *)
+have HP_pos : 0 < P.
+  by apply: prodr_gt0 => i _; rewrite subr_gt0; exact: Ha1.
+have H1a : 0 < 1 - a by rewrite subr_gt0.
+case: (lerP 1 S) => HS1.
+  (* S >= 1: LHS = 1 - S - a <= -a < 0 < P*(1-a) *)
+  apply: (lt_le_trans (y := 0)); last by rewrite mulr_ge0 // ltW.
+  by rewrite subr_lt0 (le_lt_trans HS1) // ltrDl.
+(* S < 1: use weierstrass_strict_2 *)
+apply: (lt_le_trans (y := (1 - S) * (1 - a))).
+  exact: (@weierstrass_strict_2 R S a HS_pos HS1 Ha_pos Ha_lt1).
+by apply: ler_wpM2r; [rewrite subr_ge0; exact: ltW |].
+Qed.
+
 Print Assumptions dependent_fa_ge_alpha.
 Print Assumptions independent_satisfies_marginals.
 Print Assumptions independence_worsens_assurance.
