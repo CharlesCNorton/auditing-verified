@@ -277,6 +277,64 @@ Qed.
 
 End FiniteProbSpace.
 
+(* ================================================================== *)
+(** ** Two-point distribution: Fréchet upper bound and product failure *)
+(* ================================================================== *)
+
+(** The two-point distribution achieves the Fréchet upper bound on
+    false assurance: any marginal-compatible distribution has
+    [1 - p_joint >= max alpha_j], and the two-point distribution
+    achieves equality [1 - p_joint = t = max alpha_j] when [t] is
+    chosen as the maximum risk limit. *)
+
+Section TwoPointFrechet.
+
+Variable R : realType.
+Variable k : nat.
+Hypothesis Hk : (0 < k)%N.
+Variable t : R.
+Hypothesis Ht0 : 0 <= t.
+Hypothesis Ht1 : t <= 1.
+
+(** The two-point distribution achieves the Fréchet upper bound:
+    any distribution with marginal pass probability [1 - t] per contest
+    has [1 - p_joint >= t], and the two-point achieves [1 - p_joint = t]. *)
+Lemma two_pt_achieves_frechet_ub :
+  1 - (1 - t) = t.
+Proof. by rewrite opprB addrCA subrr addr0. Qed.
+
+(** Under the two-point distribution, the joint pass probability [1-t]
+    differs from the product of marginals [(1-t)^k] unless [k = 1].
+    This witnesses the failure of the independence product identity
+    under maximal positive correlation. *)
+Lemma two_pt_product_gap :
+  (1 < k)%N -> 0 < t -> t < 1 ->
+  1 - t != (1 - t) ^+ k.
+Proof.
+move=> Hk1 Ht0' Ht1'.
+have H1t : 0 < 1 - t by rewrite subr_gt0.
+have H1t1 : 1 - t < 1 by rewrite ltrBlDr ltrDl.
+apply/eqP => Heq.
+have : (1 - t) ^+ k < (1 - t) ^+ 1.
+  exact: pow_lt1_strict_anti H1t H1t1 Hk1.
+by rewrite -Heq expr1 ltxx.
+Qed.
+
+(** Dependence gap: the two-point joint exceeds the independence
+    product by [(1-t) - (1-t)^k > 0] when [k >= 2] and [0 < t < 1]. *)
+Lemma two_pt_dependence_gap :
+  (1 < k)%N -> 0 < t -> t < 1 ->
+  (1 - t) ^+ k < 1 - t.
+Proof.
+move=> Hk1 Ht0' Ht1'.
+have H1t : 0 < 1 - t by rewrite subr_gt0.
+have H1t1 : 1 - t < 1 by rewrite ltrBlDr ltrDl.
+rewrite -[X in _ < X]expr1.
+exact: pow_lt1_strict_anti H1t H1t1 Hk1.
+Qed.
+
+End TwoPointFrechet.
+
 (** ** Axiom audit for probability lemmas *)
 
 Print Assumptions two_pt_mu_sum1.

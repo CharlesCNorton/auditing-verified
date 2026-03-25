@@ -92,7 +92,7 @@ field `R`:
 |---|---|
 | **Concrete bound** | _(19/20)<sup>90</sup> &le; 1/100_ verified by `vm_compute` in Stdlib Q, transferred to `realType` via the `QR` bridge. |
 | **Sharpness** | 89 contests do not suffice. Both directions proved. Extended to all _k &ge; 90_ via monotonicity. |
-| **Heterogeneous concrete** | Three contests at 1%, 5%, 10% yield false assurance exceeding 15%. |
+| **Heterogeneous concrete** | Three contests at 1%, 5%, 10% yield false assurance at least 15%. |
 | **Maricopa County 2024** | For Maricopa County's 265 contests at _&alpha; = 5%_: false assurance exceeds 99.99%. With 80 independent groups: exceeds 98.3%. Under MACRO: capped at 5%. |
 | **Extraction target** | Computable function `min_k` in Stdlib Q returns the minimum _k_ for given _&alpha;_ and _&delta;_. Verified: `min_k(1/20, 99/100) = 90`. |
 
@@ -142,7 +142,7 @@ make
 ```
 
 This generates `Makefile.coq` via `rocq makefile` and compiles
-`auditing.v` and `continuity.v`.
+all source files in `theories/`.
 
 To generate HTML documentation:
 
@@ -182,6 +182,13 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 | `concrete.v` | ~350 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, min_k extraction target |
 
 - `coq-auditing-verified.opam` &mdash; opam package metadata
+
+**Domain aliases.** `overlap.v` and `dependent.v` re-export several
+core results from `auditing.v` under domain-specific names (e.g.
+`overlap_bound` wraps `false_assurance_mono`, `macro_fa_le_hetero`
+wraps `independence_worsens_assurance`).  These aliases improve
+readability in the election-auditing context without adding new
+mathematical content.
 
 ## References
 

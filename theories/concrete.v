@@ -254,6 +254,14 @@ rewrite mulrACA -invfM; congr (_ / _);
      rewrite mulnE -Pos2Nat.inj_mul.
 Qed.
 
+(** [QR] distributes over addition for same-denominator arguments. *)
+Lemma QR_add_same_denom (a b : Z) (d : positive) :
+  QR (Qmake a d) + QR (Qmake b d) = QR (Qmake (a + b) d).
+Proof.
+rewrite /QR /Qnum /Qden /=.
+by rewrite -mulrDl -intrD -rmorphD.
+Qed.
+
 (** At k=90 the QR-transferred false assurance exceeds delta=99%. *)
 Lemma bridge_bound_90 :
   ratr delta_r <= @false_assurance R (ratr alpha_r) 90.
@@ -318,6 +326,7 @@ Proof. exact/QR_le_pos/concrete_hetero_le. Qed.
 
 End Bridge.
 
+(* Prevent the kernel from unfolding QR in downstream files. *)
 Strategy 100 [QR].
 
 (* Axiom audit for concrete/bridge lemmas. *)
@@ -360,6 +369,37 @@ Lemma min_k_is_90 :
   min_k (Qmake 1 20) (Qmake 99 100) = 90%N.
 Proof. by vm_compute. Qed.
 (* Expected: 90 *)
+
+Open Scope Q_scope.
+
+(** [search_k] returns immediately when the accumulator meets the threshold. *)
+Lemma search_k_hit (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
+  Qle_bool acc omd = true ->
+  search_k oma omd k fuel.+1 acc = k.
+Proof. by move=> H; rewrite /= H. Qed.
+
+(** [search_k] recurses when the accumulator has not yet met the threshold. *)
+Lemma search_k_miss (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
+  Qle_bool acc omd = false ->
+  search_k oma omd k fuel.+1 acc =
+  search_k oma omd k.+1 fuel (acc * oma).
+Proof. by move=> H; rewrite /= H. Qed.
+
+(** Correctness: the output of [min_k] satisfies the threshold [(1-alpha)^k <= 1-delta].
+    Verified for alpha=5%, delta=99% by [vm_compute] on the concrete Qpower. *)
+Lemma min_k_correct_5_99 :
+  (Qpower (1 - Qmake 1 20) (Z.of_nat (min_k (Qmake 1 20) (Qmake 99 100)))
+   <= 1 - Qmake 99 100)%Q.
+Proof. by vm_compute; discriminate. Qed.
+
+(** Minimality: [(1-alpha)^(k-1)] does NOT meet the threshold. *)
+Lemma min_k_minimal_5_99 :
+  ~ (Qpower (1 - Qmake 1 20)
+       (Z.of_nat (min_k (Qmake 1 20) (Qmake 99 100) - 1))
+     <= 1 - Qmake 99 100)%Q.
+Proof. by move/Qle_bool_iff; vm_compute. Qed.
+
+Close Scope Q_scope.
 
 (* --- Extraction to OCaml/Haskell ---
    The search_k and min_k functions are purely computational (no

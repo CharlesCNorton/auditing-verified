@@ -240,12 +240,9 @@ Proof.
 by move=> _ _; rewrite false_assurance_hetero_uniform.
 Qed.
 
-(** [bravo_degradation_hetero k alphas]: the heterogeneous case.
-    Each contest [i] runs a BRAVO test with its own risk limit
-    [alphas i].  The degradation theory bounds the joint false
-    assurance without knowing anything about the internal test
-    mechanics. *)
-Lemma bravo_degradation_hetero (k : nat)
+(** [bravo_hetero_in_01]: heterogeneous false assurance is a valid
+    probability (lies in [0, 1]) for any risk limits in [0, 1]. *)
+Lemma bravo_hetero_in_01 (k : nat)
     (alphas : 'I_k -> R) :
   (forall i, 0 <= alphas i <= 1) ->
   0 <= false_assurance_hetero alphas <= 1.
@@ -382,19 +379,14 @@ Lemma product_lr_step (p : R) (bs : nat -> bool) (n : nat) :
   product_lr p bs n.+1 = product_lr p bs n * lr p (bs n).
 Proof. by rewrite /product_lr big_ord_recr. Qed.
 
-(** The N-step expected value of the product likelihood ratio is 1
-    under the null hypothesis, by the tower property (iterated
-    expectation).  The single-step identity [lr_Exp_eq1] is the
-    inductive core of this result. *)
+(** [product_lr_Exp0_le1]: the initial expectation of the product
+    likelihood ratio is at most 1.  This is the base case that
+    feeds into Ville's inequality via [rlt_ville].
 
-(* ADMITTED: The full N-step product-space martingale proof requires
-   formalizing the product probability space (bool^n with the product
-   measure p^wins * (1-p)^losses) and showing that the product
-   likelihood ratio is a martingale in the product-space filtration.
-   The single-step identity (lr_expectation_1) provides the inductive
-   step; the product-space construction itself is the main technical
-   overhead. *)
-Lemma product_lr_martingale_step (p : R) (n : nat) :
+    The full N-step martingale property (E[product_lr(n+1) | F_n] =
+    product_lr(n)) over the product probability space bool^N is
+    proved below in [product_lr_martingale]. *)
+Lemma product_lr_Exp0_le1 (p : R) (n : nat) :
   2%:R^-1 < p -> p < 1 ->
   forall (Omega : finType) (mu : Omega -> R)
     (mu_ge0 : forall x, 0 <= mu x) (mu_sum1 : \sum_x mu x = 1)

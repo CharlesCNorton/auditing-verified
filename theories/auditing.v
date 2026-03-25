@@ -36,7 +36,8 @@ Ltac r01 :=
   first [ by rewrite subr_ge0    (* 0 <= 1 - x from x <= 1 *)
         | by rewrite subr_gt0    (* 0 < 1 - x from x < 1 *)
         | by rewrite lerBlDr lerDl (* 1 - x <= 1 from 0 <= x *)
-        | by rewrite ltrBlDr ltrDl (* 1 - x < 1 from 0 < x *) ].
+        | by rewrite ltrBlDr ltrDl (* 1 - x < 1 from 0 < x *)
+        | fail "r01: no matching [0,1] bound in context" ].
 
 (** The exponential of a sum equals the product of exponentials. *)
 Lemma expR_sum (R : realType) (k : nat) (f : 'I_k -> R) :
@@ -712,7 +713,10 @@ move: (Ha i) => /andP [H0 H1].
 by rewrite subr_ge0 H1 andTb; exact: expR_ge1Dx.
 Qed.
 
-(** Upper exponential bound: [F_hetero <= 1 - exp(-sum(alpha_i / (1-alpha_i)))]. *)
+(** Upper exponential bound: [F_hetero <= 1 - exp(-sum(alpha_i / (1-alpha_i)))].
+    N.B. Requires strict positivity [0 < alphas i], unlike the lower bound
+    [false_assurance_hetero_ge_exp] which accepts [0 <= alphas i <= 1].
+    The asymmetry arises because the upper bound divides by [1 - alphas i]. *)
 Lemma false_assurance_hetero_le_exp (k : nat)
     (alphas : 'I_k -> R) :
   (forall i, 0 < alphas i) ->
@@ -871,13 +875,20 @@ apply: false_assurance_hetero_mono.
 - by move=> i; move: (Ha i) => /andP [_ ->].
 Qed.
 
-(** Constructive threshold: the Archimedean witness [archi_bound(ln(1-delta)/ln(1-epsilon))]
-    is an explicit sufficient contest count. *)
+(** [threshold_witness epsilon delta]: the minimum contest count sufficient
+    for false assurance to exceed [delta] when every per-contest risk limit
+    is at least [epsilon].  Wraps the Archimedean bound so that downstream
+    statements do not depend on MathComp implementation details. *)
+Definition threshold_witness (epsilon delta : R) : nat :=
+  Num.Def.archi_bound (ln (1 - delta) / ln (1 - epsilon)).
+
+(** Constructive threshold: [threshold_witness] contests suffice to push
+    heterogeneous false assurance above [delta]. *)
 Lemma false_assurance_hetero_threshold_ceil
     (epsilon delta : R) :
   0 < epsilon -> epsilon < 1 -> 0 < delta -> delta < 1 ->
   forall k (alphas : 'I_k -> R),
-    (Num.Def.archi_bound (ln (1 - delta) / ln (1 - epsilon)) <= k)%N ->
+    (threshold_witness epsilon delta <= k)%N ->
     (forall i, epsilon <= alphas i <= 1) ->
     delta <= false_assurance_hetero alphas.
 Proof.
@@ -889,7 +900,7 @@ have Hbound_ge0 : 0 <= bound.
     by rewrite lerBlDr lerDl ltW.
 have Hk_bound : bound <= k%:R.
   apply: le_trans (ltW (archi_boundP Hbound_ge0)) _.
-  by rewrite ler_nat.
+  by rewrite /threshold_witness in Hle; rewrite ler_nat.
 have Hfa : delta <= false_assurance epsilon k
   by apply: ln_threshold_bound => //; exact: ltW.
 apply: (le_trans Hfa); rewrite -false_assurance_hetero_uniform.
@@ -1271,6 +1282,8 @@ End RiskLimitingAudit.
 
 (* Two-point distribution is in probability.v. *)
 
+(* Prevent the kernel from unfolding these definitions in downstream
+   files — keeps type-checking fast and error messages readable. *)
 Strategy 100 [false_assurance false_assurance_hetero joint_pass].
 
 (* Ballot overlap theory is in overlap.v. *)

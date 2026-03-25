@@ -311,13 +311,12 @@ rewrite H1 in Hp.
 exact: (le_trans Hp (false_assurance_mono Ha0 Ha1 Hk)).
 Qed.
 
-(** [macro_false_assurance p]: the no-escalation probability under all-or-nothing escalation. *)
-Definition macro_false_assurance (p : R) : R := p.
-
-(** MACRO false assurance is at most the independent heterogeneous false assurance. *)
+(** MACRO false assurance is at most the independent heterogeneous false assurance.
+    Under all-or-nothing escalation, the no-escalation probability for any
+    single contest [j] is at most [F_hetero]. *)
 Lemma macro_fa_le_hetero (k : nat) (alphas : 'I_k -> R) (j : 'I_k) :
   (forall i, 0 <= alphas i <= 1) ->
-  macro_false_assurance (alphas j) <= false_assurance_hetero alphas.
+  alphas j <= false_assurance_hetero alphas.
 Proof. exact: independence_worsens_assurance. Qed.
 
 (** Strict MACRO bound: if the minimum risk limit is not the only value, MACRO gives strictly less. *)
@@ -327,7 +326,7 @@ Lemma macro_fa_strict_le_hetero (k : nat)
   (forall i, alphas i < 1) ->
   (forall i, alphas j <= alphas i) ->
   alphas j < alphas j' ->
-  macro_false_assurance (alphas j) < false_assurance_hetero alphas.
+  alphas j < false_assurance_hetero alphas.
 Proof.
 move=> Ha0 Ha1 Hmin Hlt.
 have Ha01 : forall i, 0 <= alphas i <= 1

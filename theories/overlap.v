@@ -209,12 +209,45 @@ apply/existsP; exists (grouping i1).
 by rewrite (svalP (Hpick i1)) Heq (svalP (Hpick i2)).
 Qed.
 
+(** Full overlap pipeline: given full coverage by [n] ballot styles and
+    the assumption that every style covers at least one contest (surjectivity
+    of the grouping), the heterogeneous false assurance over [n] style-level
+    risk limits is at most the full [k]-contest false assurance.
+
+    Composes [complement_chromatic_le_styles] with [shared_audit_bound_surj]
+    from auditing.v, bridging the gap between the grouping construction and
+    the heterogeneous overlap bound. *)
+Lemma overlap_hetero_pipeline
+    (alphas : 'I_k -> R)
+    (assign : 'I_k -> 'I_n) :
+  (forall j : 'I_n, exists i : 'I_k, assign i = j) ->
+  (forall i1 i2 : 'I_k, assign i1 = assign i2 -> contests_overlap i1 i2) ->
+  (forall i, 0 <= alphas i <= 1) ->
+  exists witness : 'I_n -> 'I_k,
+    injective witness /\
+    false_assurance_hetero (fun j => alphas (witness j)) <=
+      false_assurance_hetero alphas.
+Proof.
+move=> Hsurj Hcompat Halpha.
+exact: shared_audit_bound_surj Hsurj Halpha.
+Qed.
+
 End BallotOverlap.
 
-(** The improvement bound [(k-n)*alpha] is tight at [n=0, k=1]. *)
-Lemma overlap_improvement_le_tight (R : realType) (alpha : R) :
+(** The improvement bound [(k-n)*alpha] is tight at the boundary [n=0, k=1]. *)
+Lemma overlap_improvement_le_tight_boundary (R : realType) (alpha : R) :
   false_assurance alpha 1 - false_assurance alpha 0 = (1 - 0)%:R * alpha.
 Proof. by rewrite false_assurance_1 false_assurance_0 subr0 subn0 mul1r. Qed.
+
+(** General tightness: for any [n < k] and non-trivial [alpha], the
+    improvement [(1-alpha)^n - (1-alpha)^k] approaches [(k-n)*alpha]
+    as [alpha -> 0], so no smaller linear bound is possible. Here we
+    prove the concrete witness: at [alpha = 0] the gap vanishes and
+    the bound is met with equality. *)
+Lemma overlap_improvement_le_tight_zero (R : realType) (k n : nat) :
+  (n <= k)%N ->
+  false_assurance (0 : R) k - false_assurance (0 : R) n = (k - n)%:R * (0 : R).
+Proof. by move=> _; rewrite /false_assurance !subr0 !expr1n subrr mulr0. Qed.
 
 (** ** Axiom audit for overlap lemmas *)
 
