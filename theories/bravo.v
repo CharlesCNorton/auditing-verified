@@ -469,6 +469,20 @@ by split; [exact: ballot_F_refl | exact: ballot_F_sym |
            exact: ballot_F_trans | exact: ballot_F_refine].
 Qed.
 
+(** The product measure normalizes to 1. Uses [bigA_distr_bigA] to
+    factor the sum over functions into a product of per-coordinate sums,
+    each of which equals 1 by [ballot_mu_sum1]. *)
+Lemma ballot_prod_mu_sum1 :
+  \sum_(f : {ffun 'I_N -> bool}) ballot_prod_mu f = 1.
+Proof.
+rewrite /ballot_prod_mu.
+have <- : \prod_(i < N) \sum_(b : bool) ballot_mu p b =
+          \sum_(f : {ffun 'I_N -> bool}) \prod_(i < N) ballot_mu p (f i).
+  exact: bigA_distr_bigA.
+have Hmu1 : \sum_(b : bool) ballot_mu p b = 1 by exact: ballot_mu_sum1.
+by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: Hmu1.
+Qed.
+
 End BallotProductSpace.
 
 (** ** Multiplicative martingale step *)

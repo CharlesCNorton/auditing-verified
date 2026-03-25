@@ -8,3 +8,5 @@ Makefile.coq
 Makefile.coq.conf
 .Makefile.coq.d
 html/
+min_k.ml
+min_k.mli
