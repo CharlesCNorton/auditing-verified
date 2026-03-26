@@ -150,7 +150,7 @@ To generate HTML documentation:
 make doc
 ```
 
-This produces browsable coqdoc output in `html/`. A snapshot is published at https://charlescnorton.github.io/auditing-verified/ (manually deployed; may lag behind `main`).
+This produces browsable coqdoc output in `html/`. The latest build is published at https://charlescnorton.github.io/auditing-verified/.
 
 ## Dependencies
 
@@ -168,7 +168,7 @@ make
 
 ## Documentation
 
-Browsable coqdoc output (manually deployed snapshot): https://charlescnorton.github.io/auditing-verified/
+Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 
 ## File structure
 

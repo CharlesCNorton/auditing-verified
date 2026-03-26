@@ -19,15 +19,13 @@ depends: [
   "coq-mathcomp-ssreflect" {>= "2.5"}
   "coq-mathcomp-algebra" {>= "2.5"}
   "coq-mathcomp-analysis" {>= "1.15"}
-  "coq-mathcomp-zify" {>= "1.5"}
+  "coq-mathcomp-zify"
 ]
 
 build: [
   [make "-j%{jobs}%"]
 ]
-install: [
-  [make "install"]
-]
+install: []
 
 tags: [
   "keyword:risk-limiting audits"

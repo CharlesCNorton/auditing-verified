@@ -112,33 +112,6 @@ have -> : \sum_(y | F n x y) mu y * X y =
 by rewrite mulfK ?gt_eqF.
 Qed.
 
-(** Conditional expectation is [F n]-measurable: equivalent elements
-    have the same conditional expectation. *)
-Lemma cond_exp_F_measurable (F : nat -> Omega -> Omega -> bool)
-    (X : Omega -> R) (n : nat) (x y : Omega) :
-  filtration F ->
-  F n x y ->
-  cond_exp F X n x = cond_exp F X n y.
-Proof.
-move=> [_ Hsym Htrans _] Hxy.
-rewrite /cond_exp; congr (_ / _); apply: eq_bigl => z; apply/idP/idP => H.
-- by apply: (Htrans n x); [rewrite Hsym |].
-- by exact: (Htrans n y _ _ Hxy H).
-Qed.
-
-(** Conditional expectation is idempotent:
-    [E[E[X | F_n] | F_n] = E[X | F_n]]. *)
-Lemma cond_exp_idempotent (F : nat -> Omega -> Omega -> bool)
-    (X : Omega -> R) (n : nat) (x : Omega) :
-  filtration F ->
-  0 < \sum_(y | F n x y) mu y ->
-  cond_exp F (cond_exp F X n) n x = cond_exp F X n x.
-Proof.
-move=> HF Hcell.
-apply: cond_exp_measurable => // y Hxy.
-exact: (cond_exp_F_measurable HF Hxy).
-Qed.
-
 (** Filtration monotonicity: if [m <= n] and [F n x y], then [F m x y]. *)
 Lemma filtration_mono (F : nat -> Omega -> Omega -> bool)
     (m n : nat) (x y : Omega) :
@@ -246,13 +219,10 @@ Lemma tower_property (F : nat -> Omega -> Omega -> bool)
 Proof.
 move=> [Hrefl Hsym Htrans _] Hcell.
 rewrite /Exp /cond_exp.
-(* Step 1: Rewrite both sides as sums over predT to enable pair_big_dep. *)
 have Hpred : forall (G : Omega -> R),
   \sum_(x : Omega) G x = \sum_(x | predT x) G x
   by move=> G; rewrite big_mkcond /=.
 rewrite !Hpred.
-(* Step 2: Factor each mu(x) * E[X|F_n](x) into a sum over the cell
-   of x, distributing the weight mu(x)/sum_cell as a factor. *)
 have Hbody : forall x,
   mu x * ((\sum_(y | F n x y) mu y * X y) / \sum_(y | F n x y) mu y) =
   \sum_(y | F n x y) mu y * X y * (mu x / \sum_(z | F n x z) mu z).
@@ -263,15 +233,10 @@ have Hbody : forall x,
 transitivity (\sum_(x | predT x) \sum_(y | F n x y)
   mu y * X y * (mu x / \sum_(z | F n x z) mu z)).
   by apply: eq_bigr => x _; exact: Hbody.
-(* Step 3: Flatten the double sum into a pair sum via pair_big_dep,
-   then swap the summation order using a pair-swap bijection. *)
 have Hinj : injective (fun p : Omega * Omega => (p.2, p.1))
   by move=> [a b] [c d] /= [-> ->].
 rewrite (pair_big_dep predT (F n)) /=.
 symmetry.
-(* Step 4: In the swapped sum, each inner sum over the cell of y
-   collapses: equiv_class_sum shows all elements in the same cell
-   share the same cell mass, so divff cancels to 1. *)
 transitivity (\sum_(y | predT y) \sum_(x | F n x y)
   mu y * X y * (mu x / \sum_(z | F n x z) mu z)).
   apply: eq_bigr => y _; rewrite -[LHS]mulr1 -mulr_sumr; congr (_ * _).
@@ -281,7 +246,6 @@ transitivity (\sum_(y | predT y) \sum_(x | F n x y)
   have -> : \sum_(j | F n j y) mu j = \sum_(z | F n y z) mu z
     by apply: eq_bigl => z; rewrite (Hsym n).
   by rewrite divff // gt_eqF.
-(* Step 5: Reindex the pair sum with the swap bijection. *)
 rewrite (pair_big_dep predT (fun y x => F n x y)) /=.
 by rewrite (reindex_inj Hinj) /=.
 Qed.
@@ -632,52 +596,6 @@ exact: le_trans (@markov_ineq (stopped_value M (hitting_time M c N)) _ Hc Hsv_ge
                  (optional_stopping HF Hsup Hstop Hcell Hbound).
 Qed.
 
-(** ** Submartingale-specific results *)
-
-(** Negating a submartingale yields a supermartingale. *)
-Lemma neg_submartingale_is_supermartingale (F : nat -> Omega -> Omega -> bool)
-    (M : nat -> Omega -> R) :
-  submartingale F M ->
-  supermartingale F (fun n x => - M n x).
-Proof.
-move=> [Hadapt Hsub]; split.
-- by move=> n x y Hxy; rewrite (Hadapt n x y Hxy).
-- move=> n x; rewrite /cond_exp.
-  have -> : \sum_(y | F n x y) mu y * (- M n.+1 y) =
-            - \sum_(y | F n x y) mu y * M n.+1 y.
-    by rewrite -sumrN; apply: eq_bigr => y _; rewrite mulrN.
-  by rewrite mulNr lerNl opprK; exact: Hsub.
-Qed.
-
-(** A submartingale has non-decreasing expected value at each step. *)
-Lemma submartingale_Exp_mono (F : nat -> Omega -> Omega -> bool)
-    (M : nat -> Omega -> R) (n : nat) :
-  filtration F ->
-  submartingale F M ->
-  (forall x, 0 < \sum_(y | F n x y) mu y) ->
-  Exp (M n) <= Exp (M n.+1).
-Proof.
-move=> HF [Hadapt Hsub] Hcell.
-apply: (le_trans (y := Exp (cond_exp F (M n.+1) n))).
-  rewrite /Exp; apply: ler_sum => x _.
-  by apply: ler_wpM2l; [exact: mu_ge0 | exact: Hsub].
-by rewrite tower_property.
-Qed.
-
-(** A submartingale's expected value at any time [n] is bounded below by its
-    initial expected value. *)
-Lemma submartingale_Exp_ge0 (F : nat -> Omega -> Omega -> bool)
-    (M : nat -> Omega -> R) (n : nat) :
-  filtration F ->
-  submartingale F M ->
-  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
-  Exp (M 0) <= Exp (M n).
-Proof.
-move=> HF Hsub Hcell; elim: n => [|n IH]; first exact: lexx.
-apply: (le_trans IH).
-exact: (@submartingale_Exp_mono F M n HF Hsub (Hcell n)).
-Qed.
-
 End DiscreteVille.
 
 (** ** Filtration-partition equivalence *)
@@ -851,8 +769,3 @@ Print Assumptions ville_stopping.
 Print Assumptions doob_maximal.
 Print Assumptions stopped_process_supermartingale.
 Print Assumptions partition_equiv_roundtrip.
-Print Assumptions cond_exp_F_measurable.
-Print Assumptions cond_exp_idempotent.
-Print Assumptions neg_submartingale_is_supermartingale.
-Print Assumptions submartingale_Exp_mono.
-Print Assumptions submartingale_Exp_ge0.

@@ -121,15 +121,7 @@ End TwoPointDistribution.
     sigma-algebra is the power set), so events are simply predicates.
     This bridges the algebraic model ([joint_pass = prod p_i] by
     definition) and the probabilistic model ([joint_pass = prod p_i]
-    derived from statistical independence).
-
-    Design choice: this module is self-contained rather than building
-    on MathComp's [measure] or [probability] libraries.  MathComp
-    probability targets sigma-finite measure spaces with general
-    sigma-algebras; the finite-support case here needs only [finType]
-    with non-negative weights summing to 1.  Using the general library
-    would add heavy dependencies ([topology], [lebesgue_*]) without
-    material benefit for discrete auditing models. *)
+    derived from statistical independence). *)
 
 Section FiniteProbSpace.
 
@@ -339,34 +331,6 @@ have H1t : 0 < 1 - t by rewrite subr_gt0.
 have H1t1 : 1 - t < 1 by rewrite ltrBlDr ltrDl.
 rewrite -[X in _ < X]expr1.
 exact: pow_lt1_strict_anti H1t H1t1 Hk1.
-Qed.
-
-(** The two-point distribution violates full-intersection independence:
-    the joint pass probability [(1-t)] differs from the product of
-    marginals [(1-t)^k], so [events_independent] cannot hold.
-
-    Formally: if the two-point measure satisfied independence, then
-    [Pr(all pass) = prod Pr(E_i pass) = (1-t)^k].  But [Pr(all pass)
-    = 1 - t] by [two_pt_false_assurance].  Since [(1-t) != (1-t)^k]
-    when [k >= 2] and [0 < t < 1], independence is violated. *)
-Lemma two_pt_not_independent :
-  (1 < k)%N -> 0 < t -> t < 1 ->
-  ~ events_independent (two_pt_mu Ht0 Ht1)
-      (fun j : 'I_k => fun f : {ffun 'I_k -> bool} => f j).
-Proof.
-move=> Hk1 Ht0' Ht1' Hindep.
-have Hjoint : Pr (two_pt_mu Ht0 Ht1)
-    (fun f : {ffun 'I_k -> bool} => [forall j, f j]) = 1 - t.
-  rewrite /Pr (bigD1 all_pass) /=; last by apply/forallP => j; rewrite ffunE.
-  rewrite /two_pt_mu eqxx big1 ?addr0 // => f /andP [/forallP Hall Hne].
-  rewrite (negbTE Hne) /=; case Hff: (f == all_fail) => //.
-  by move/eqP: Hff => Hff; move: (Hall (Ordinal Hk)); rewrite Hff ffunE.
-have Hprod : \prod_(j < k) Pr (two_pt_mu Ht0 Ht1) (fun f => f j) =
-             (1 - t) ^+ k.
-  rewrite -iter_mulr_1 -big_const_ord; apply: eq_bigr => j _.
-  exact: two_pt_marginal.
-have Heq : 1 - t = (1 - t) ^+ k by rewrite /events_independent Hjoint Hprod in Hindep.
-exact: (two_pt_product_gap Hk1 Ht0' Ht1' (esym Heq)).
 Qed.
 
 End TwoPointFrechet.
