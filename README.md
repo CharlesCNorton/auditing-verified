@@ -13,7 +13,9 @@ multiple-testing theory and applied to election auditing by Stark (2009)
 and Lindeman and Stark (2012). To our knowledge this is the first
 machine-checked formalization of the &Scaron;id&aacute;k correction in
 the election auditing context, and the first mechanized proof of
-Ville's inequality in any proof assistant.
+Ville's inequality in any proof assistant (see
+[Related formalizations](#related-formalizations) below for a comparison
+with Lean/Mathlib and Isabelle/HOL martingale work).
 
 The proofs are carried out over MathComp's `realType` using MathComp
 Analysis for logarithms and real exponentiation, with no axioms beyond
@@ -174,12 +176,15 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 
 | File | Lines | Contents |
 |------|------:|----------|
-| `auditing.v` | ~1960 | Core definitions, algebraic degradation theory, heterogeneous risk limits, AM-GM optimality, dependent audit model, FCR/FWER, MACRO |
-| `probability.v` | ~260 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution |
-| `overlap.v` | ~270 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring |
-| `ville.v` | ~660 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, filtration-partition equivalence |
+| `auditing.v` | ~1430 | Core definitions, algebraic degradation theory, heterogeneous risk limits, FCR/FWER, shared/simultaneous audits, conservative bounds |
+| `allocation.v` | ~250 | AM-GM inequality, optimal risk allocation, strict optimality, unique minimizer |
+| `dependent.v` | ~440 | Dependent audit model, Fr&eacute;chet bounds, Weierstrass product inequality, MACRO model, negative dependence witnesses |
+| `probability.v` | ~350 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal |
+| `overlap.v` | ~260 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring |
+| `ville.v` | ~770 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, filtration-partition equivalence |
+| `bravo.v` | ~585 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, degradation connection, multiplicative martingale step |
 | `continuity.v` | ~80 | Continuity and differentiability of false assurance (MathComp Analysis topology scope isolation) |
-| `concrete.v` | ~350 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, min_k extraction target |
+| `concrete.v` | ~415 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, min_k extraction target |
 
 - `coq-auditing-verified.opam` &mdash; opam package metadata
 
@@ -190,34 +195,108 @@ wraps `independence_worsens_assurance`).  These aliases improve
 readability in the election-auditing context without adding new
 mathematical content.
 
+## Related formalizations
+
+The probability and martingale theory formalized here sits in a broader
+landscape of machine-checked probability:
+
+- **Lean / Mathlib.** Conditional expectation, filtrations, martingales,
+  submartingales, and the martingale convergence theorem have been
+  formalized by Kexing Ying and R&eacute;my Degenne.
+  See K. Ying and R. Degenne, &ldquo;A formalization of Doob's
+  martingale convergence theorems in mathlib,&rdquo; _CPP 2022_,
+  pp. 132&ndash;145.
+  [DOI: 10.1145/3497775.3503559](https://doi.org/10.1145/3497775.3503559).
+  Mathlib does not contain Ville's inequality.
+
+- **Isabelle / HOL.** Measure theory and probability by Johannes
+  H&ouml;lzl (TU M&uuml;nchen). The AFP entry &ldquo;Martingales&rdquo;
+  by Ata Keskin (2024) formalizes martingales, Doob's upcrossing
+  inequality, and the martingale convergence theorem.
+
+- **Coq / MathComp Analysis.** Measure theory and Lebesgue integration
+  by Reynald Affeldt, Cyril Cohen, et al.
+  See R. Affeldt et al., &ldquo;Measure construction by extension in
+  dependent type theory with application to integration,&rdquo;
+  _J. Automated Reasoning_, 67, Article 12, 2023.
+  [DOI: 10.1007/s10817-023-09671-5](https://doi.org/10.1007/s10817-023-09671-5).
+  MathComp Analysis does not contain martingale theory.
+
+To our knowledge, no proof assistant contains a formalization of
+Ville's inequality, the &Scaron;id&aacute;k correction, or
+risk-limiting audit theory prior to this work.
+
 ## References
 
-- Z. &Scaron;id&aacute;k. "Rectangular confidence regions for the means of
-  multivariate normal distributions." _J. Amer. Statist. Assoc._,
-  62(318):626&ndash;633, 1967.
+### Election auditing
+
+- Z. &Scaron;id&aacute;k. &ldquo;Rectangular confidence regions for the
+  means of multivariate normal distributions.&rdquo;
+  _J. Amer. Statist. Assoc._, 62(318):626&ndash;633, 1967.
   [DOI: 10.1080/01621459.1967.10482935](https://doi.org/10.1080/01621459.1967.10482935)
-- P. B. Stark. "Risk-limiting postelection audits: Conservative _P_-values
-  from common probability inequalities." _IEEE Trans. Inform. Forensics
-  Security_, 4(4):1005&ndash;1014, 2009.
+- P. B. Stark. &ldquo;Conservative statistical post-election
+  audits.&rdquo; _Ann. Appl. Stat._, 2(2):550&ndash;581, 2008.
+  [DOI: 10.1214/08-AOAS161](https://doi.org/10.1214/08-AOAS161)
+- P. B. Stark. &ldquo;Risk-limiting postelection audits: Conservative
+  _P_-values from common probability inequalities.&rdquo; _IEEE Trans.
+  Inform. Forensics Security_, 4(4):1005&ndash;1014, 2009.
   [DOI: 10.1109/TIFS.2009.2034190](https://doi.org/10.1109/TIFS.2009.2034190)
-- M. Lindeman and P. B. Stark. "A gentle introduction to risk-limiting
-  audits." _IEEE Security & Privacy_, 10(5):42&ndash;49, 2012.
-  [DOI: 10.1109/MSP.2012.56](https://doi.org/10.1109/MSP.2012.56)
-- P. B. Stark. "Efficient post-election audits of multiple contests:
-  2009 California tests." SSRN, 2009.
+- P. B. Stark. &ldquo;Efficient post-election audits of multiple
+  contests: 2009 California tests.&rdquo; SSRN, 2009.
   [DOI: 10.2139/ssrn.1443314](https://doi.org/10.2139/ssrn.1443314)
-- M. Fr&eacute;chet. "G&eacute;n&eacute;ralisation du th&eacute;or&egrave;me des probabilit&eacute;s totales."
+- M. Lindeman and P. B. Stark. &ldquo;A gentle introduction to
+  risk-limiting audits.&rdquo; _IEEE Security &amp; Privacy_,
+  10(5):42&ndash;49, 2012.
+  [DOI: 10.1109/MSP.2012.56](https://doi.org/10.1109/MSP.2012.56)
+- M. Lindeman, P. B. Stark, and V. S. Yates. &ldquo;BRAVO:
+  Ballot-polling risk-limiting audits to verify outcomes.&rdquo;
+  _2012 Electronic Voting Technology Workshop / Workshop on
+  Trustworthy Elections (EVT/WOTE &rsquo;12)_, USENIX, 2012.
+- P. B. Stark. &ldquo;Sets of half-average nulls generate
+  risk-limiting audits: SHANGRLA.&rdquo; In _Financial Cryptography
+  and Data Security: FC 2020 International Workshops_, LNCS 12063,
+  pp. 319&ndash;336, Springer, 2020.
+  [DOI: 10.1007/978-3-030-54455-3_23](https://doi.org/10.1007/978-3-030-54455-3_23)
+- P. B. Stark. &ldquo;ALPHA: Audit that learns from previously
+  hand-audited ballots.&rdquo; _Ann. Appl. Stat._,
+  17(1):641&ndash;679, 2023.
+  [DOI: 10.1214/22-AOAS1646](https://doi.org/10.1214/22-AOAS1646)
+- Maricopa County Elections Department. &ldquo;2024 General Election
+  Information Now Available Online.&rdquo; elections.maricopa.gov,
+  October 2024.
+
+### Probability and inequalities
+
+- A. N. Kolmogorov. _Grundbegriffe der Wahrscheinlichkeitsrechnung._
+  Ergebnisse der Mathematik, Springer, Berlin, 1933. English
+  translation: _Foundations of the Theory of Probability_, Chelsea,
+  New York, 1950.
+- J. Ville. _&Eacute;tude critique de la notion de collectif._
+  Gauthier-Villars, Paris, 1939.
+- J. L. Doob. _Stochastic Processes._ John Wiley &amp; Sons,
+  New York, 1953. ISBN: 978-0-471-52369-7.
+- M. Fr&eacute;chet. &ldquo;G&eacute;n&eacute;ralisation du
+  th&eacute;or&egrave;me des probabilit&eacute;s totales.&rdquo;
   _Fundamenta Mathematicae_, 25:379&ndash;387, 1935.
   [DOI: 10.4064/fm-25-1-379-387](https://doi.org/10.4064/fm-25-1-379-387)
-- P. B. Stark. "ALPHA: Audit that learns from previously hand-audited
-  ballots." _Ann. Appl. Stat._, 17(1):641&ndash;679, 2023.
-  [DOI: 10.1214/22-AOAS1646](https://doi.org/10.1214/22-AOAS1646)
-- J. Ville. _&Eacute;tude critique de la notion de collectif._
-  Gauthier-Villars, 1939.
-- Maricopa County Elections Department. "2024 General Election Information
-  Now Available Online." elections.maricopa.gov, October 2024.
+- P. L. Chebyshev. &ldquo;Des valeurs moyennes.&rdquo; _J. Math.
+  Pures Appl._, 2e s&eacute;rie, 12:177&ndash;184, 1867.
+- G. Boole. _An Investigation of the Laws of Thought, on Which Are
+  Founded the Mathematical Theories of Logic and Probabilities._
+  Walton and Maberly, London, 1854.
+  [DOI: 10.1017/CBO9780511693090](https://doi.org/10.1017/CBO9780511693090)
+  (Cambridge reprint)
+- A.-L. Cauchy. _Cours d'analyse de l'&Eacute;cole Royale
+  Polytechnique. Premi&egrave;re partie: Analyse
+  alg&eacute;brique._ L'Imprimerie Royale, Paris, 1821.
+- G. H. Hardy, J. E. Littlewood, and G. P&oacute;lya.
+  _Inequalities._ 2nd ed., Cambridge University Press, 1952.
+- D. S. Mitrinovi&cacute;. _Analytic Inequalities._ Grundlehren der
+  mathematischen Wissenschaften, Springer-Verlag, 1970.
+  [DOI: 10.1007/978-3-642-99970-3](https://doi.org/10.1007/978-3-642-99970-3)
 
-A per-lemma bibliography with DOIs is included at the end of `auditing.v`.
+A per-lemma bibliography with DOIs is included at the end of
+`auditing.v`, `ville.v`, `bravo.v`, `dependent.v`, and `allocation.v`.
 
 ## License
 

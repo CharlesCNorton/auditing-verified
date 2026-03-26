@@ -579,6 +579,40 @@ End MultiplicativeStep.
     algebraic and apply to any mechanism that delivers a per-contest
     risk bound. *)
 
+(* --- Bibliography ---
+
+   ballot_mu, lr, lr_expectation_1, lr_Exp_eq1, lr_win_lt1,
+   lr_lose_gt1:
+     M. Lindeman, P. B. Stark, and V. S. Yates, "BRAVO:
+     ballot-polling risk-limiting audits to verify outcomes,"
+     2012 Electronic Voting Technology Workshop / Workshop on
+     Trustworthy Elections (EVT/WOTE '12), USENIX, 2012.
+     The likelihood-ratio martingale originates in A. Wald,
+     Sequential Analysis, John Wiley & Sons, New York, 1947.
+
+   rlt_ville, ville_ineq (from ville.v):
+     J. Ville, Étude critique de la notion de collectif,
+     Gauthier-Villars, Paris, 1939.
+
+   degradation_from_per_contest, bravo_degradation_uniform:
+     Composition of the per-contest BRAVO bound with the
+     multiplicative degradation theory (auditing.v).
+     See P. B. Stark, "Risk-limiting postelection audits:
+     conservative P-values from common probability inequalities,"
+     IEEE Trans. Inform. Forensics Security, 4(4):1005-1014,
+     2009.  DOI: 10.1109/TIFS.2009.2034190
+
+   ballot_prod_mu_sum1:
+     Product-measure normalization via bigA_distr_bigA.
+     Standard; see e.g. R. Durrett, Probability: Theory and
+     Examples, 5th ed., Cambridge University Press, 2019.
+
+   multiplicative_martingale_step:
+     The pull-out property of conditional expectation for
+     measurable factors.  Standard; see J. L. Doob,
+     Stochastic Processes, Wiley, 1953, Ch. VII.
+*)
+
 Print Assumptions lr_expectation_1.
 Print Assumptions degradation_from_per_contest.
 Print Assumptions trivial_filtration_ok.

@@ -921,13 +921,11 @@ Qed.
 
    In modern sequential RLAs (BRAVO, ALPHA), a non-negative supermartingale
    is updated after each ballot draw. Ville's inequality then guarantees
-   P(false pass) <= alpha_i at any stopping time. This formalization does
-   NOT prove Ville's inequality (which requires measure-theoretic
-   machinery beyond MathComp's current scope). Instead, it ASSUMES the
-   per-contest bound holds at each time step and proves that the
-   multiplicative degradation follows. The assumed bound is the interface
-   between the probabilistic mechanism (external) and the algebraic
-   degradation theory (formalized here). *)
+   P(false pass) <= alpha_i at any stopping time. Ville's inequality,
+   the optional stopping theorem, and Doob's maximal inequality are
+   proved in ville.v on finite probability spaces. The per-contest
+   bound is the interface between the probabilistic mechanism (ville.v)
+   and the algebraic degradation theory (this file). *)
 
 (** Worst-case bound (heterogeneous): [F_hetero <= 1 - joint_pass ps] for bounded pass probabilities. *)
 Lemma false_assurance_hetero_worst_case (k : nat)
@@ -1338,13 +1336,13 @@ Print Assumptions fwer_ge_fcr.
 (* --- Bibliography ---
 
    Provenance of each key result, mapping lemma names to their
-   published source. DOIs are provided where they exist.
+   published source.  DOIs are provided where they exist.
 
    false_assurance, false_assurance_ge0, false_assurance_le1,
    false_assurance_mono, false_assurance_strict_mono,
    threshold_crossing, threshold_iff, per_contest_degradation,
    no_fixed_bound:
-     Z. Sidak, "Rectangular confidence regions for the means of
+     Z. Šidák, "Rectangular confidence regions for the means of
      multivariate normal distributions," J. Amer. Statist. Assoc.,
      62(318):626-633, 1967.
      DOI: 10.1080/01621459.1967.10482935
@@ -1358,6 +1356,9 @@ Print Assumptions fwer_ge_fcr.
      P-values from common probability inequalities," IEEE Trans.
      Inform. Forensics Security, 4(4):1005-1014, 2009.
      DOI: 10.1109/TIFS.2009.2034190
+     See also P. B. Stark, "Conservative statistical post-election
+     audits," Ann. Appl. Stat., 2(2):550-581, 2008.
+     DOI: 10.1214/08-AOAS161
 
    overlap_bound, overlap_improvement, overlap_strict_improvement,
    overlap_refinement_mono, full_overlap_bound:
@@ -1367,21 +1368,29 @@ Print Assumptions fwer_ge_fcr.
      DOI: 10.1109/MSP.2012.56
 
    union_bound, union_bound_strict, union_bound_tight_1:
-     G. Boole, An Investigation of the Laws of Thought, 1854.
+     G. Boole, An Investigation of the Laws of Thought, on Which
+     Are Founded the Mathematical Theories of Logic and
+     Probabilities, Walton and Maberly, London, 1854.
      DOI (Cambridge reprint): 10.1017/CBO9780511693090
 
    false_assurance_ge_exp, false_assurance_le_exp,
    exp_sandwich_gap, false_assurance_hetero_ge_exp,
    false_assurance_hetero_le_exp:
      Standard calculus bound 1-x <= exp(-x) applied termwise to the
-     Sidak product. Implicit in Stark (2009).
+     Šidák product.  Implicit in Stark (2009).
 
    am_gm, am_gm_ge0, uniform_allocation_optimal,
    uniform_allocation_strict, uniform_allocation_unique:
-     AM-GM inequality (Cauchy, 1821). Application to optimal risk
-     allocation is implicit in the Sidak/Bonferroni literature.
+     A.-L. Cauchy, Cours d'analyse de l'École Royale Polytechnique.
+     Première partie: Analyse algébrique, L'Imprimerie Royale,
+     Paris, 1821, pp. 457-459 (Note VII).
+     See also G. H. Hardy, J. E. Littlewood, and G. Pólya,
+     Inequalities, 2nd ed., Cambridge University Press, 1952,
+     Ch. II.
+     Application to optimal risk allocation is implicit in the
+     Šidák/Bonferroni literature.
 
-   macro_no_multiplicity, macro_uniform, macro_false_assurance,
+   macro_no_multiplicity, macro_uniform,
    macro_fa_le_hetero, macro_fa_strict_le_hetero:
      P. B. Stark, "Efficient post-election audits of multiple
      contests: 2009 California tests," SSRN, 2009.
@@ -1389,21 +1398,55 @@ Print Assumptions fwer_ge_fcr.
 
    frechet_upper_bound, frechet_lower_bound, frechet_sandwich,
    independent_between_frechet:
-     M. Frechet, "Generalisation du theoreme des probabilites
+     M. Fréchet, "Généralisation du théorème des probabilités
      totales," Fundamenta Mathematicae, 25:379-387, 1935.
      DOI: 10.4064/fm-25-1-379-387
 
-   weierstrass_product:
-     Classical product inequality (Weierstrass). See D. S. Mitrinovic,
-     Analytic Inequalities, Springer, 1970.
+   weierstrass_product, weierstrass_strict_2,
+   frechet_lower_strict_general:
+     Classical product inequality (Weierstrass).  See
+     D. S. Mitrinović, Analytic Inequalities, Grundlehren der
+     mathematischen Wissenschaften, Springer-Verlag, 1970,
+     pp. 210-211.
      DOI: 10.1007/978-3-642-99970-3
 
    anytime_degradation (hypothesis interface):
-     J. Ville, Etude critique de la notion de collectif, Gauthier-
-     Villars, 1939. (Pre-DOI monograph.)
+     J. Ville, Étude critique de la notion de collectif, Gauthier-
+     Villars, Paris, 1939.  (Pre-DOI monograph.)
      P. B. Stark, "ALPHA: audit that learns from previously hand-
      audited ballots," Ann. Appl. Stat., 17(1):641-679, 2023.
      DOI: 10.1214/22-AOAS1646
+     P. B. Stark, "Sets of half-average nulls generate risk-limiting
+     audits: SHANGRLA," in Financial Cryptography and Data Security:
+     FC 2020 International Workshops, LNCS 12063, pp. 319-336,
+     Springer, 2020.
+     DOI: 10.1007/978-3-030-54455-3_23
+
+   ville_ineq, tower_property, supermartingale_Exp_mono,
+   optional_stopping, doob_maximal, doob_maximal_ineq,
+   stopped_process_supermartingale (in ville.v):
+     J. Ville, Étude critique de la notion de collectif, Gauthier-
+     Villars, Paris, 1939.  (Ville's inequality.)
+     J. L. Doob, Stochastic Processes, John Wiley & Sons, New York,
+     1953, Ch. VII.  ISBN: 978-0-471-52369-7.
+     (Optional stopping, maximal inequality, tower property.)
+     A. N. Kolmogorov, Grundbegriffe der Wahrscheinlichkeits-
+     rechnung, Springer, Berlin, 1933.  English translation:
+     Foundations of the Theory of Probability, Chelsea, 1950.
+     (Conditional expectation, tower property.)
+
+   markov_ineq (in ville.v):
+     P. L. Chebyshev, "Des valeurs moyennes," J. Math. Pures
+     Appl., 2e série, 12:177-184, 1867.  (Implicit method.)
+     A. A. Markov, Wahrscheinlichkeitsrechnung, Teubner,
+     Leipzig, 1912.  (General statement.)
+
+   lr_expectation_1, ballot_plr, degradation_from_per_contest,
+   bravo_degradation_uniform (in bravo.v):
+     M. Lindeman, P. B. Stark, and V. S. Yates, "BRAVO: ballot-
+     polling risk-limiting audits to verify outcomes," 2012
+     Electronic Voting Technology Workshop / Workshop on
+     Trustworthy Elections (EVT/WOTE '12), USENIX, 2012.
 
    dependence_gap, positive_dependence_reduces_fa,
    negative_dependence_worsens_fa, dep_fa_achievable:
@@ -1412,11 +1455,11 @@ Print Assumptions fwer_ge_fcr.
 
    false_assurance_continuous_alpha,
    false_assurance_hetero_continuous_coord:
-     Standard continuity of polynomial functions. No specific
+     Standard continuity of polynomial functions.  No specific
      published source.
 
    false_assurance_lipschitz, pow_diff_bound:
-     Quantitative sensitivity analysis. The k-Lipschitz bound is
+     Quantitative sensitivity analysis.  The k-Lipschitz bound is
      a direct consequence of the mean value theorem applied to
      x^k on [0,1].
 *)

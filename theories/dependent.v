@@ -438,6 +438,41 @@ apply: (lt_le_trans (y := (1 - S) * (1 - a))).
 by apply: ler_wpM2r; [rewrite subr_ge0; exact: ltW |].
 Qed.
 
+(* --- Bibliography ---
+
+   frechet_upper_bound, frechet_lower_bound, frechet_sandwich,
+   independent_between_frechet, frechet_lower_strict_2,
+   frechet_lower_strict_general:
+     M. Fréchet, "Généralisation du théorème des probabilités
+     totales," Fundamenta Mathematicae, 25:379-387, 1935.
+     DOI: 10.4064/fm-25-1-379-387
+
+   weierstrass_product, weierstrass_strict_2:
+     D. S. Mitrinović, Analytic Inequalities, Grundlehren der
+     mathematischen Wissenschaften, Springer-Verlag, 1970,
+     pp. 210-211.  DOI: 10.1007/978-3-642-99970-3
+
+   macro_no_multiplicity, macro_uniform,
+   macro_fa_le_hetero, macro_fa_strict_le_hetero:
+     P. B. Stark, "Efficient post-election audits of multiple
+     contests: 2009 California tests," SSRN, 2009.
+     DOI: 10.2139/ssrn.1443314
+
+   positive_dependence_reduces_fa,
+   negative_dependence_worsens_fa, dependence_gap,
+   dep_fa_achievable, dep_fa_achievable_measure:
+     Algebraic consequences of the independence product model.
+     Dependence comparison is standard; see P. B. Stark,
+     "Risk-limiting postelection audits," IEEE Trans. Inform.
+     Forensics Security, 4(4):1005-1014, 2009.
+     DOI: 10.1109/TIFS.2009.2034190
+
+   negative_dep_exp_bound, negative_dep_threshold,
+   positive_dep_exp_bound, positive_dep_union_bound:
+     Transfer of the exponential sandwich and threshold results
+     from auditing.v through the dependence comparison lemmas.
+*)
+
 Print Assumptions dependent_fa_ge_alpha.
 Print Assumptions independent_satisfies_marginals.
 Print Assumptions independence_worsens_assurance.

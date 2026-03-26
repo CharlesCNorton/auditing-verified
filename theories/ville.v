@@ -762,6 +762,38 @@ Qed.
 
 End PartitionFiltration.
 
+(* --- Bibliography ---
+
+   tower_property:
+     A. N. Kolmogorov, Grundbegriffe der Wahrscheinlichkeits-
+     rechnung, Springer, Berlin, 1933.  English translation:
+     Foundations of the Theory of Probability, Chelsea, 1950.
+     (Rigorous conditional expectation and tower property.)
+     J. L. Doob, Stochastic Processes, John Wiley & Sons,
+     New York, 1953, Ch. VII.  ISBN: 978-0-471-52369-7.
+
+   markov_ineq:
+     P. L. Chebyshev, "Des valeurs moyennes," J. Math. Pures
+     Appl., 2e série, 12:177-184, 1867.  (Implicit method.)
+     A. A. Markov, Wahrscheinlichkeitsrechnung, Teubner,
+     Leipzig, 1912.  (General statement.)
+
+   ville_ineq, ville_step_bound, ville_stopping:
+     J. Ville, Étude critique de la notion de collectif,
+     Gauthier-Villars, Paris, 1939.
+
+   optional_stopping, stopped_process_supermartingale:
+     J. L. Doob, Stochastic Processes, Wiley, 1953, Ch. VII.
+
+   doob_maximal, doob_maximal_ineq:
+     J. L. Doob, Stochastic Processes, Wiley, 1953, Ch. VII.
+
+   partition_filtration, partition_equiv_roundtrip,
+   filtration_refines_partition:
+     Standard equivalence-relation / partition duality.
+     No specific published source.
+*)
+
 Print Assumptions ville_ineq.
 Print Assumptions tower_property.
 Print Assumptions optional_stopping.

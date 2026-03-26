@@ -240,6 +240,29 @@ Qed.
 
 End Allocation.
 
+(* --- Bibliography ---
+
+   am_gm, am_gm_ge0:
+     A.-L. Cauchy, Cours d'analyse de l'École Royale
+     Polytechnique.  Première partie: Analyse algébrique,
+     L'Imprimerie Royale, Paris, 1821, pp. 457-459 (Note VII).
+     Modern annotated translation: R. E. Bradley and
+     C. E. Sandifer, Cauchy's Cours d'analyse: An Annotated
+     Translation, Springer, 2009.
+     DOI: 10.1007/978-1-4419-0549-9
+     Standard modern reference: G. H. Hardy, J. E. Littlewood,
+     and G. Pólya, Inequalities, 2nd ed., Cambridge University
+     Press, 1952, Ch. II.
+
+   uniform_allocation_optimal, uniform_allocation_optimal_ge0,
+   uniform_allocation_strict, uniform_allocation_unique:
+     Application of AM-GM to optimal risk allocation is implicit
+     in the Šidák/Bonferroni literature.  See Z. Šidák,
+     "Rectangular confidence regions for the means of multivariate
+     normal distributions," J. Amer. Statist. Assoc., 62(318):
+     626-633, 1967.  DOI: 10.1080/01621459.1967.10482935
+*)
+
 Print Assumptions am_gm.
 Print Assumptions uniform_allocation_optimal.
 Print Assumptions uniform_allocation_strict.
