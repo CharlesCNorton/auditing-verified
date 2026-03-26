@@ -24,7 +24,7 @@ Unset Printing Implicit Defensive.
 Import Order.Theory GRing.Theory Num.Theory.
 Open Scope ring_scope.
 
-From Auditing Require Import auditing probability ville.
+From Auditing Require Import auditing_1 probability_4 ville_6.
 
 (** ** Risk-limited test abstraction *)
 
@@ -590,7 +590,7 @@ End MultiplicativeStep.
      The likelihood-ratio martingale originates in A. Wald,
      Sequential Analysis, John Wiley & Sons, New York, 1947.
 
-   rlt_ville, ville_ineq (from ville.v):
+   rlt_ville, ville_ineq (from ville_6.v):
      J. Ville, Étude critique de la notion de collectif,
      Gauthier-Villars, Paris, 1939.
 

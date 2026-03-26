@@ -23,7 +23,7 @@ Unset Printing Implicit Defensive.
 Import Order.Theory GRing.Theory Num.Theory.
 Open Scope ring_scope.
 
-From Auditing Require Import auditing.
+From Auditing Require Import auditing_1.
 
 (* ================================================================== *)
 (** ** Two-point distribution on [{ffun 'I_k -> bool}]                *)

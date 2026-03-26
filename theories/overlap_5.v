@@ -24,7 +24,7 @@ Unset Printing Implicit Defensive.
 Import Order.Theory GRing.Theory Num.Theory.
 Open Scope ring_scope.
 
-From Auditing Require Import auditing dependent.
+From Auditing Require Import auditing_1 dependent_3.
 
 (* ================================================================== *)
 (** ** Ballot overlap                                                  *)
@@ -215,7 +215,7 @@ Qed.
     risk limits is at most the full [k]-contest false assurance.
 
     Composes [complement_chromatic_le_styles] with [shared_audit_bound_surj]
-    from auditing.v, bridging the gap between the grouping construction and
+    from auditing_1.v, bridging the gap between the grouping construction and
     the heterogeneous overlap bound. *)
 Lemma overlap_hetero_pipeline
     (alphas : 'I_k -> R)

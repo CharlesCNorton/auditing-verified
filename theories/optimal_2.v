@@ -3,7 +3,7 @@
 (*     Optimal Risk Allocation (AM-GM) for Risk-Limiting Audits              *)
 (*                                                                            *)
 (*     The uniform allocation minimizes false assurance for a given total     *)
-(*     risk budget. Extracted from auditing.v.                                *)
+(*     risk budget. Extracted from auditing_1.v.                                *)
 (*                                                                            *)
 (*     Author: Charles C. Norton                                              *)
 (*     License: MIT                                                           *)
@@ -14,7 +14,7 @@ From mathcomp Require Import all_boot all_order all_algebra.
 From mathcomp.reals Require Import reals.
 From mathcomp.analysis Require Import sequences exp.
 
-From Auditing Require Import auditing.
+From Auditing Require Import auditing_1.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -18,7 +18,7 @@
 From mathcomp Require Import all_boot all_order all_algebra.
 From mathcomp.reals Require Import reals.
 
-From Auditing Require Import auditing probability.
+From Auditing Require Import auditing_1 probability_4.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

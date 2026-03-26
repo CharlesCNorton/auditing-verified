@@ -135,7 +135,7 @@ MathComp classical axioms:
 - `constructive_indefinite_description`
 
 No proofs are admitted. The axiom audit is included at the end of
-`auditing.v` via `Print Assumptions` for all key results.
+`auditing_1.v` via `Print Assumptions` for all key results.
 
 ## Building
 
@@ -176,20 +176,20 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 
 | File | Lines | Contents |
 |------|------:|----------|
-| `auditing.v` | ~1430 | Core definitions, algebraic degradation theory, heterogeneous risk limits, FCR/FWER, shared/simultaneous audits, conservative bounds |
-| `allocation.v` | ~250 | AM-GM inequality, optimal risk allocation, strict optimality, unique minimizer |
-| `dependent.v` | ~440 | Dependent audit model, Fr&eacute;chet bounds, Weierstrass product inequality, MACRO model, negative dependence witnesses |
-| `probability.v` | ~350 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal |
-| `overlap.v` | ~260 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring |
-| `ville.v` | ~770 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, filtration-partition equivalence |
-| `bravo.v` | ~585 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, degradation connection, multiplicative martingale step |
-| `continuity.v` | ~80 | Continuity and differentiability of false assurance (MathComp Analysis topology scope isolation) |
-| `concrete.v` | ~415 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, min_k extraction target |
+| `auditing_1.v` | ~1430 | Core definitions, algebraic degradation theory, heterogeneous risk limits, FCR/FWER, shared/simultaneous audits, conservative bounds |
+| `optimal_2.v` | ~250 | AM-GM inequality, optimal risk allocation, strict optimality, unique minimizer |
+| `dependent_3.v` | ~440 | Dependent audit model, Fr&eacute;chet bounds, Weierstrass product inequality, MACRO model, negative dependence witnesses |
+| `probability_4.v` | ~350 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal |
+| `overlap_5.v` | ~260 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring |
+| `ville_6.v` | ~770 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, filtration-partition equivalence |
+| `bravo_7.v` | ~585 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, degradation connection, multiplicative martingale step |
+| `continuity_8.v` | ~80 | Continuity and differentiability of false assurance (MathComp Analysis topology scope isolation) |
+| `concrete_9.v` | ~415 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, min_k extraction target |
 
 - `coq-auditing-verified.opam` &mdash; opam package metadata
 
-**Domain aliases.** `overlap.v` and `dependent.v` re-export several
-core results from `auditing.v` under domain-specific names (e.g.
+**Domain aliases.** `overlap_5.v` and `dependent_3.v` re-export several
+core results from `auditing_1.v` under domain-specific names (e.g.
 `overlap_bound` wraps `false_assurance_mono`, `macro_fa_le_hetero`
 wraps `independence_worsens_assurance`).  These aliases improve
 readability in the election-auditing context without adding new
@@ -296,7 +296,7 @@ risk-limiting audit theory prior to this work.
   [DOI: 10.1007/978-3-642-99970-3](https://doi.org/10.1007/978-3-642-99970-3)
 
 A per-lemma bibliography with DOIs is included at the end of
-`auditing.v`, `ville.v`, `bravo.v`, `dependent.v`, and `allocation.v`.
+`auditing_1.v`, `ville_6.v`, `bravo_7.v`, `dependent_3.v`, and `optimal_2.v`.
 
 ## License
 

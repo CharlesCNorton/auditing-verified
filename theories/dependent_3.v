@@ -4,7 +4,7 @@
 (*                                                                            *)
 (*     Dependence analysis, Frechet bounds, and quantitative dependence      *)
 (*     theory for joint audit pass probabilities. Extracted from             *)
-(*     auditing.v.                                                            *)
+(*     auditing_1.v.                                                            *)
 (*                                                                            *)
 (*     Author: Charles C. Norton                                              *)
 (*     License: MIT                                                           *)
@@ -15,7 +15,7 @@ From mathcomp Require Import all_boot all_order all_algebra.
 From mathcomp.reals Require Import reals.
 From mathcomp.analysis Require Import sequences exp.
 
-From Auditing Require Import auditing.
+From Auditing Require Import auditing_1.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -470,7 +470,7 @@ Qed.
    negative_dep_exp_bound, negative_dep_threshold,
    positive_dep_exp_bound, positive_dep_union_bound:
      Transfer of the exponential sandwich and threshold results
-     from auditing.v through the dependence comparison lemmas.
+     from auditing_1.v through the dependence comparison lemmas.
 *)
 
 Print Assumptions dependent_fa_ge_alpha.

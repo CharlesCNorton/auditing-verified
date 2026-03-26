@@ -2,7 +2,7 @@
 (*                                                                            *)
 (*     Continuity and differentiability of false assurance functions          *)
 (*                                                                            *)
-(*     Separated from auditing.v to isolate MathComp Analysis topology       *)
+(*     Separated from auditing_1.v to isolate MathComp Analysis topology       *)
 (*     imports from Stdlib scope conflicts.                                   *)
 (*                                                                            *)
 (*     Author: Charles C. Norton                                              *)
@@ -19,7 +19,7 @@ Import Order.Theory GRing.Theory Num.Theory.
 Open Scope ring_scope.
 
 (* Import auditing definitions *)
-From Auditing Require Import auditing.
+From Auditing Require Import auditing_1.
 
 Section ContinuityAndSmoothness.
 Variable R : realType.

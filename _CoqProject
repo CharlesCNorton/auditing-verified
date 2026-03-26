@@ -1,10 +1,10 @@
 -R theories Auditing
-theories/auditing.v
-theories/allocation.v
-theories/dependent.v
-theories/probability.v
-theories/overlap.v
-theories/ville.v
-theories/continuity.v
-theories/concrete.v
-theories/bravo.v
+theories/auditing_1.v
+theories/optimal_2.v
+theories/dependent_3.v
+theories/probability_4.v
+theories/overlap_5.v
+theories/ville_6.v
+theories/bravo_7.v
+theories/continuity_8.v
+theories/concrete_9.v

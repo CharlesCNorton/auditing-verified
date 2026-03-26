@@ -2,7 +2,7 @@
 (*                                                                            *)
 (*     Concrete validation and Q-to-R transfer for risk-limiting audits      *)
 (*                                                                            *)
-(*     Instantiates the algebraic degradation theory from auditing.v at      *)
+(*     Instantiates the algebraic degradation theory from auditing_1.v at      *)
 (*     concrete parameter values (alpha = 5%, delta = 99%, k = 90) and       *)
 (*     transfers the Q-level bounds to an arbitrary realType via the          *)
 (*     QR injection.  Also contains the Maricopa County 2024 instantiation   *)
@@ -24,7 +24,7 @@ Unset Printing Implicit Defensive.
 Import Order.Theory GRing.Theory Num.Theory.
 Open Scope ring_scope.
 
-From Auditing Require Import auditing.
+From Auditing Require Import auditing_1.
 From Stdlib Require Import QArith Qpower.
 
 (* --- Phase 1: decidable bounds in Stdlib Q ---

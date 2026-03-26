@@ -910,9 +910,9 @@ apply: false_assurance_hetero_mono.
 - by move=> i; move: (Ha i) => /andP [_ ->].
 Qed.
 
-(* Optimal risk allocation (AM-GM) is in allocation.v. *)
+(* Optimal risk allocation (AM-GM) is in optimal_2.v. *)
 
-(* Dependent audit model is in dependent.v. *)
+(* Dependent audit model is in dependent_3.v. *)
 
 (* --- Sequential/martingale audit theory ---
    The degradation bound is mechanism-agnostic: it uses only the
@@ -923,8 +923,8 @@ Qed.
    is updated after each ballot draw. Ville's inequality then guarantees
    P(false pass) <= alpha_i at any stopping time. Ville's inequality,
    the optional stopping theorem, and Doob's maximal inequality are
-   proved in ville.v on finite probability spaces. The per-contest
-   bound is the interface between the probabilistic mechanism (ville.v)
+   proved in ville_6.v on finite probability spaces. The per-contest
+   bound is the interface between the probabilistic mechanism (ville_6.v)
    and the algebraic degradation theory (this file). *)
 
 (** Worst-case bound (heterogeneous): [F_hetero <= 1 - joint_pass ps] for bounded pass probabilities. *)
@@ -1274,31 +1274,31 @@ Qed.
 
 End FCR.
 
-(* MACRO audit model is in dependent.v. *)
+(* MACRO audit model is in dependent_3.v. *)
 
 End RiskLimitingAudit.
 
-(* Two-point distribution is in probability.v. *)
+(* Two-point distribution is in probability_4.v. *)
 
 (* Prevent the kernel from unfolding these definitions in downstream
    files — keeps type-checking fast and error messages readable. *)
 Strategy 100 [false_assurance false_assurance_hetero joint_pass].
 
-(* Ballot overlap theory is in overlap.v. *)
+(* Ballot overlap theory is in overlap_5.v. *)
 
-(* Finite probability space and independence are in probability.v. *)
+(* Finite probability space and independence are in probability_4.v. *)
 
-(* Discrete supermartingale theory is in ville.v. *)
+(* Discrete supermartingale theory is in ville_6.v. *)
 
-(* Continuity and differentiability results are in continuity.v,
+(* Continuity and differentiability results are in continuity_8.v,
    separated to isolate MathComp Analysis topology imports from
-   Stdlib scope conflicts. See continuity.v for:
+   Stdlib scope conflicts. See continuity_8.v for:
    - false_assurance_continuous_alpha
    - false_assurance_hetero_continuous_coord
    - false_assurance_hetero_derivable_coord (C-infinity) *)
 
 (* Concrete validation, Maricopa instantiation, Q-to-R transfer,
-   and the min_k extraction target are in concrete.v. *)
+   and the min_k extraction target are in concrete_9.v. *)
 
 
 (* Axiom audit — compile this file and inspect the output to verify
@@ -1424,7 +1424,7 @@ Print Assumptions fwer_ge_fcr.
 
    ville_ineq, tower_property, supermartingale_Exp_mono,
    optional_stopping, doob_maximal, doob_maximal_ineq,
-   stopped_process_supermartingale (in ville.v):
+   stopped_process_supermartingale (in ville_6.v):
      J. Ville, Étude critique de la notion de collectif, Gauthier-
      Villars, Paris, 1939.  (Ville's inequality.)
      J. L. Doob, Stochastic Processes, John Wiley & Sons, New York,
@@ -1435,14 +1435,14 @@ Print Assumptions fwer_ge_fcr.
      Foundations of the Theory of Probability, Chelsea, 1950.
      (Conditional expectation, tower property.)
 
-   markov_ineq (in ville.v):
+   markov_ineq (in ville_6.v):
      P. L. Chebyshev, "Des valeurs moyennes," J. Math. Pures
      Appl., 2e série, 12:177-184, 1867.  (Implicit method.)
      A. A. Markov, Wahrscheinlichkeitsrechnung, Teubner,
      Leipzig, 1912.  (General statement.)
 
    lr_expectation_1, ballot_plr, degradation_from_per_contest,
-   bravo_degradation_uniform (in bravo.v):
+   bravo_degradation_uniform (in bravo_7.v):
      M. Lindeman, P. B. Stark, and V. S. Yates, "BRAVO: ballot-
      polling risk-limiting audits to verify outcomes," 2012
      Electronic Voting Technology Workshop / Workshop on
