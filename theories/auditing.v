@@ -285,6 +285,24 @@ apply: (le_trans (ler_wpM2r Hdiff_ge0 Hexpa_le1)).
 by rewrite mul1r /b /a.
 Qed.
 
+(** The exponential sandwich gap simplifies to [k*alpha^2/(1-alpha)]. *)
+Lemma exp_sandwich_gap_form (alpha : R) (k : nat) :
+  0 < alpha -> alpha < 1 ->
+  k%:R * alpha / (1 - alpha) - k%:R * alpha = k%:R * alpha ^+ 2 / (1 - alpha).
+Proof.
+move=> Ha0 Ha1.
+have H1a_ne : 1 - alpha != 0 by rewrite gt_eqF // subr_gt0.
+apply: (mulIf H1a_ne); rewrite mulrBl !divfK //.
+by rewrite mulrBr mulr1 opprB addrCA subrr addr0 exprS expr1 mulrA.
+Qed.
+
+(** The exponential sandwich gap vanishes at [alpha = 0]:
+    both bounds agree with [F(0, k) = 0], witnessing asymptotic tightness. *)
+Lemma exp_sandwich_tight_zero (k : nat) :
+  (1 - expR (- (k%:R * (0 : R) / (1 - (0 : R))))) -
+  (1 - expR (- (k%:R * (0 : R)))) = 0.
+Proof. by rewrite !mulr0 !mul0r !oppr0 !expR0 subrr. Qed.
+
 (** Powers of [x] in [0,1] are anti-monotone: [x^n <= x^m] when [m <= n]. *)
 Lemma pow_le1_anti (x : R) (m n : nat) :
   0 <= x -> x <= 1 -> (m <= n)%N -> x ^+ n <= x ^+ m.
@@ -373,6 +391,17 @@ move=> Ha1 Hle Ha2 Hk1 Hk /orP [Hlt|Hlt].
 - have Ha1' : alpha1 < 1 := le_lt_trans Hle Ha2.
   apply: (lt_le_trans (false_assurance_strict_mono Ha1 Ha1' Hlt)).
   exact: false_assurance_alpha_mono (ltW Ha1) Hle (ltW Ha2).
+Qed.
+
+(** Combined non-strict monotonicity: false assurance is non-decreasing in both [alpha] and [k] simultaneously. *)
+Lemma false_assurance_bivariate_mono (alpha1 alpha2 : R) (k1 k2 : nat) :
+  0 <= alpha1 -> alpha1 <= alpha2 -> alpha2 <= 1 ->
+  (k1 <= k2)%N ->
+  false_assurance alpha1 k1 <= false_assurance alpha2 k2.
+Proof.
+move=> Ha1 Hle Ha2 Hk.
+apply: (le_trans (false_assurance_alpha_mono k1 Ha1 Hle Ha2)).
+exact: false_assurance_mono (le_trans Ha1 Hle) Ha2 Hk.
 Qed.
 
 (** Threshold sensitivity: any [delta] below [F(alpha1, k)] remains below [F(alpha2, k)] for [alpha2 >= alpha1]. *)
@@ -1100,6 +1129,37 @@ suff : false_assurance_hetero risks < false_assurance_hetero alphas.
 exact: (false_assurance_hetero_strict_mono Hr0 Ha1 Hle Hlt).
 Qed.
 
+(** Quantitative sensitivity: the gap in false assurance when risk [j]
+    drops is at least [(alphas j - risks j) * prod_{i!=j}(1-alphas_i)]. *)
+Lemma conservative_gap_lower (k : nat) (alphas risks : 'I_k -> R) (j : 'I_k) :
+  (forall i, 0 <= risks i) ->
+  (forall i, risks i <= alphas i) ->
+  (forall i, alphas i <= 1) ->
+  (alphas j - risks j) * \prod_(i < k | i != j) (1 - alphas i) <=
+    false_assurance_hetero alphas - false_assurance_hetero risks.
+Proof.
+move=> Hr0 Hle Ha1.
+rewrite /false_assurance_hetero.
+(* Simplify RHS: (1 - Qa) - (1 - Qr) = Qr - Qa *)
+have -> : (1 - \prod_(i < k) (1 - alphas i)) -
+          (1 - \prod_(i < k) (1 - risks i)) =
+          \prod_(i < k) (1 - risks i) - \prod_(i < k) (1 - alphas i).
+  by rewrite opprD opprK addrACA subrr add0r addrC.
+(* Split both products at j *)
+rewrite !(bigD1 j) //=.
+set Pr := \prod_(i < k | i != j) (1 - risks i).
+set Pa := \prod_(i < k | i != j) (1 - alphas i).
+have HPa_ge0 : 0 <= Pa by apply: prodr_ge0 => i _; rewrite subr_ge0 Ha1.
+have HPa_le_Pr : Pa <= Pr.
+  apply: ler_prod => i _; apply/andP; split;
+    [by rewrite subr_ge0 (le_trans (Hle i) (Ha1 i))|by rewrite lerD2l lerN2 Hle].
+have H1rj : 0 <= 1 - risks j by rewrite subr_ge0; exact: le_trans (Hr0 j) (le_trans (Hle j) (Ha1 j)).
+(* Rewrite LHS as a difference of products over Pa *)
+suff -> : (alphas j - risks j) * Pa = (1 - risks j) * Pa - (1 - alphas j) * Pa.
+  by apply: lerD; [exact: ler_wpM2l H1rj HPa_le_Pr | exact: lexx].
+by rewrite -mulrBl opprD opprK addrACA subrr add0r addrC.
+Qed.
+
 (** ** False certification rate (FCR) *)
 (* ---
    The right/wrong partition splits contests into those with correct
@@ -1334,6 +1394,10 @@ Print Assumptions fcr_first_bound.
 Print Assumptions false_assurance_hetero_threshold_ceil.
 Print Assumptions fcr_tight_bound.
 Print Assumptions fwer_ge_fcr.
+Print Assumptions exp_sandwich_gap_form.
+Print Assumptions exp_sandwich_tight_zero.
+Print Assumptions false_assurance_bivariate_mono.
+Print Assumptions conservative_gap_lower.
 
 (* --- Bibliography ---
 
@@ -1381,7 +1445,7 @@ Print Assumptions fwer_ge_fcr.
      AM-GM inequality (Cauchy, 1821). Application to optimal risk
      allocation is implicit in the Sidak/Bonferroni literature.
 
-   macro_no_multiplicity, macro_uniform, macro_false_assurance,
+   macro_no_multiplicity, macro_uniform,
    macro_fa_le_hetero, macro_fa_strict_le_hetero:
      P. B. Stark, "Efficient post-election audits of multiple
      contests: 2009 California tests," SSRN, 2009.
