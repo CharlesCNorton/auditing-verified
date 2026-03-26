@@ -21,14 +21,13 @@ Items 1, 3, 4, 6 all converge on one technical kernel: decomposing sums over `{f
 14. Weaken `ballot_prod_mu_sum1` to require only `0 < p` and `p < 1` instead of `2^{-1} < p`. Product-measure normalization does not depend on the null-hypothesis restriction.
 15. Prove the algebraic simplification `k*alpha/(1-alpha) - k*alpha = k*alpha^2/(1-alpha)` and apply it in `exp_sandwich_gap` so the type matches the docstring.
 16. Replace the vacuous `maricopa_macro_bound` (`x <= x`) with a concrete instantiation of `macro_uniform` at Maricopa parameters (k=265, alpha=5%).
-17. Clean build artifacts from the working tree: `Makefile.coq`, `Makefile.coq.conf`, `.Makefile.coq.d`, `min_k.ml`, `min_k.mli`, `theories/.coq-native/*`, and all `.vo`/`.vos`/`.vok`/`.glob`/`.aux` files.
-18. Set `install: [make "install" "DESTDIR=%{lib}%"]` (or equivalent) in `coq-auditing-verified.opam` so that `.vo` files are installed as a usable dependency.
-19. Add a version pin for `coq-mathcomp-zify` in the opam file.
-20. Consolidate `Q_scope` management in `concrete.v` into a single `Local Open Scope` or dedicated section.
-21. Add proof-sketch comments to `tower_property` (ville.v) explaining the pair-sum flattening, swap bijection, and cell-mass cancellation steps.
-22. Add deployment automation for the coqdoc GitHub Pages site, or remove the "latest build is published" claim from the README.
-23. Fix the bibliography in `auditing.v`: `macro_false_assurance` (line 1384) does not exist as a lemma name; the actual lemmas are `macro_no_multiplicity`, `macro_uniform`, `macro_fa_le_hetero`, `macro_fa_strict_le_hetero`.
-24. Add quantitative local sensitivity for conservative bounds: if `risks_j < alphas_j - epsilon`, bound the gap `F_hetero(alphas) - F_hetero(risks)` from below.
-25. Prove the exponential sandwich is asymptotically tight as `alpha -> 0`.
-26. Add a combined bivariate non-strict monotonicity lemma: `alpha1 <= alpha2 -> (k1 <= k2)%N -> F(alpha1,k1) <= F(alpha2,k2)`.
-27. Add a `.coqdoc` options file controlling TOC, index generation, and CSS for `make doc`.
+17. Set `install: [make "install"]` in `coq-auditing-verified.opam` so that `.vo` files are installed as a usable dependency.
+18. Add a version pin for `coq-mathcomp-zify` in the opam file.
+19. Consolidate `Q_scope` management in `concrete.v` into a single `Local Open Scope` or dedicated section.
+20. Add proof-sketch comments to `tower_property` (ville.v) explaining the pair-sum flattening, swap bijection, and cell-mass cancellation steps.
+21. Add deployment automation for the coqdoc GitHub Pages site, or remove the "latest build is published" claim from the README.
+22. Fix the bibliography in `auditing.v`: `macro_false_assurance` does not exist as a lemma name; the actual lemmas are `macro_no_multiplicity`, `macro_uniform`, `macro_fa_le_hetero`, `macro_fa_strict_le_hetero`.
+23. Add quantitative local sensitivity for conservative bounds: if `risks_j < alphas_j - epsilon`, bound the gap `F_hetero(alphas) - F_hetero(risks)` from below.
+24. Prove the exponential sandwich is asymptotically tight as `alpha -> 0`.
+25. Add a combined bivariate non-strict monotonicity lemma: `alpha1 <= alpha2 -> (k1 <= k2)%N -> F(alpha1,k1) <= F(alpha2,k2)`.
+26. Add a `.coqdoc` options file controlling TOC, index generation, and CSS for `make doc`.
