@@ -228,38 +228,6 @@ apply: ler_prod => i _.
 by move: (Hps i) => /andP [H0 H1]; rewrite H0 H1.
 Qed.
 
-(** [bravo_degradation_uniform alpha k]: specialization to the uniform
-    case.  If all [k] contests use the same risk limit [alpha], and each
-    contest's BRAVO test achieves that bound (via Ville's inequality),
-    then the joint false assurance is bounded by [false_assurance alpha k]. *)
-Lemma bravo_degradation_uniform (alpha : R) (k : nat) :
-  0 <= alpha -> alpha <= 1 ->
-  false_assurance_hetero (fun _ : 'I_k => alpha) <=
-  false_assurance alpha k.
-Proof.
-by move=> _ _; rewrite false_assurance_hetero_uniform.
-Qed.
-
-(** [bravo_hetero_in_01]: heterogeneous false assurance is a valid
-    probability (lies in [0, 1]) for any risk limits in [0, 1]. *)
-Lemma bravo_hetero_in_01 (k : nat)
-    (alphas : 'I_k -> R) :
-  (forall i, 0 <= alphas i <= 1) ->
-  0 <= false_assurance_hetero alphas <= 1.
-Proof.
-move=> Ha; apply/andP; split.
-- exact: false_assurance_hetero_ge0.
-- exact: false_assurance_hetero_le1.
-Qed.
-
-(** [union_bound_hetero k alphas]: the union/Bonferroni bound for
-    heterogeneous risk limits.  Always weaker than the multiplicative
-    bound, but sometimes used for quick estimation. *)
-Lemma union_bound_hetero (k : nat) (alphas : 'I_k -> R) :
-  (forall i, 0 <= alphas i <= 1) ->
-  false_assurance_hetero alphas <= \sum_(i < k) alphas i.
-Proof. exact: false_assurance_hetero_union_bound. Qed.
-
 End DegradationConnection.
 
 (** ** Trivial (discrete) filtration construction *)
@@ -508,6 +476,22 @@ Qed.
 
 End BallotProductSpace.
 
+(** Generalized product-measure normalization: requires only [0 < p < 1],
+    not [p > 1/2]. The null-hypothesis restriction is needed for the
+    likelihood ratio but not for measure normalization. *)
+Lemma ballot_prod_mu_sum1_gen (R : realType) (p : R) (N : nat) :
+  0 < p -> p < 1 ->
+  \sum_(f : {ffun 'I_N -> bool}) ballot_prod_mu p f = 1.
+Proof.
+move=> Hp0 Hp1; rewrite /ballot_prod_mu.
+have <- : \prod_(i < N) \sum_(b : bool) ballot_mu p b =
+          \sum_(f : {ffun 'I_N -> bool}) \prod_(i < N) ballot_mu p (f i).
+  exact: bigA_distr_bigA.
+have Hmu1 : \sum_(b : bool) ballot_mu p b = 1.
+  by rewrite big_bool /ballot_mu /= addrC subrK.
+by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: Hmu1.
+Qed.
+
 (** ** Multiplicative martingale step *)
 
 (** The key factorization: if [M] is [F]-measurable and [L] has
@@ -594,7 +578,7 @@ End MultiplicativeStep.
      J. Ville, Étude critique de la notion de collectif,
      Gauthier-Villars, Paris, 1939.
 
-   degradation_from_per_contest, bravo_degradation_uniform:
+   degradation_from_per_contest:
      Composition of the per-contest BRAVO bound with the
      multiplicative degradation theory (auditing.v).
      See P. B. Stark, "Risk-limiting postelection audits:

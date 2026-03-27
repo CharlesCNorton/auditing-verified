@@ -27,6 +27,15 @@ Section Allocation.
 
 Variable R : realType.
 
+(** Distributing division over a sum: [\sum (f i / c) = (\sum f i) / c]. *)
+Lemma sum_divr (n : nat) (f : 'I_n -> R) (c : R) :
+  c != 0 -> \sum_(i < n) (f i / c) = (\sum_(i < n) f i) / c.
+Proof.
+move=> Hc; elim/big_ind2: _ => //.
+- by rewrite mul0r.
+- by move=> a1 b1 a2 b2 -> ->; rewrite -mulrDl.
+Qed.
+
 (** ** Optimal risk allocation (AM-GM)
 
     The uniform allocation minimizes false assurance for a given total
@@ -66,11 +75,6 @@ suff Hq1 : \prod_(i < k) q i <= 1.
 (* Prove prod(q_i) <= 1 via exp bound: q_i <= expR(q_i - 1) *)
 have Hprod_pos : 0 < \prod_(i < k) q i by apply: prodr_gt0 => i _.
 (* sum(q_i) = k *)
-have sum_divr : forall (n : nat) (f : 'I_n -> R) (c : R),
-    c != 0 -> \sum_(i < n) (f i / c) = (\sum_(i < n) f i) / c.
-  move=> n f c Hc; elim/big_ind2: _ => //.
-  - by rewrite mul0r.
-  - by move=> a1 b1 a2 b2 -> ->; rewrite -mulrDl.
 have Hsum_q : \sum_(i < k) q i = k%:R.
   rewrite /q sum_divr ?gt_eqF // -/S.
   have HMk : M * k%:R = S by rewrite /M divfK ?gt_eqF.
@@ -181,13 +185,8 @@ have Hq_pos : forall i, 0 < q i by move=> i; rewrite /q divr_gt0.
 have Hqj_ne1 : q j != 1.
   rewrite /q; apply/eqP => H.
   by move: Hyj_ne; rewrite -(divfK HM_ne0 (y j)) H mul1r eqxx.
-have sum_divr2 : forall (m : nat) (f : 'I_m -> R) (c : R),
-    c != 0 -> \sum_(i < m) (f i / c) = (\sum_(i < m) f i) / c.
-  move=> m f c Hc; elim/big_ind2: _ => //.
-  - by rewrite mul0r.
-  - by move=> a1 b1 a2 b2 -> ->; rewrite -mulrDl.
 have Hsum_q : \sum_(i < k) q i = k%:R.
-  rewrite /q sum_divr2 ?HM_ne0 // -/S.
+  rewrite /q sum_divr ?HM_ne0 // -/S.
   have HMk : M * k%:R = S by rewrite /M divfK ?HM_ne0.
   by rewrite -{1}HMk -mulrA mulrCA mulfV ?HM_ne0 // mulr1.
 (* Strict: sum ln(q_i) < 0 because one term is strict *)

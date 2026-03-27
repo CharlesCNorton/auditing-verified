@@ -210,7 +210,18 @@ move=> Htrans Hsym Hxy; apply: eq_bigl => z; apply/idP/idP.
 - by exact: (Htrans y).
 Qed.
 
-(** Tower property: [E[E[X | F n]] = E[X]]. *)
+(** Tower property: [E[E[X | F n]] = E[X]].
+
+    Proof sketch:
+    1. Rewrite the LHS as a double sum over (x, y) pairs where
+       [F n x y], weighting each term by [mu x / cell_mass(x)].
+    2. Flatten to a sum over pairs via [pair_big_dep].
+    3. For the RHS, factor [mu y * X y] out of each inner sum and
+       show the remaining cell-mass ratios sum to 1 via
+       [equiv_class_sum] (equivalent elements have equal cell mass).
+    4. Flatten the RHS the same way, then apply [reindex_inj] with
+       the pair-swap bijection [(x,y) -> (y,x)] to match the two
+       flattened sums. *)
 Lemma tower_property (F : nat -> Omega -> Omega -> bool)
     (X : Omega -> R) (n : nat) :
   filtration F ->
@@ -597,6 +608,10 @@ exact: le_trans (@markov_ineq (stopped_value M (hitting_time M c N)) _ Hc Hsv_ge
 Qed.
 
 End DiscreteVille.
+
+(* Prevent the kernel from unfolding intermediate definitions in
+   downstream files — keeps type-checking fast and error messages readable. *)
+Strategy 100 [cond_exp Exp stopped_process stopped_value hitting_time].
 
 (** ** Filtration-partition equivalence *)
 

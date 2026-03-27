@@ -13,9 +13,14 @@ multiple-testing theory and applied to election auditing by Stark (2009)
 and Lindeman and Stark (2012). To our knowledge this is the first
 machine-checked formalization of the &Scaron;id&aacute;k correction in
 the election auditing context, and the first mechanized proof of
-Ville's inequality in any proof assistant (see
+discrete (finite-state) Ville's inequality in any proof assistant (see
 [Related formalizations](#related-formalizations) below for a comparison
-with Lean/Mathlib and Isabelle/HOL martingale work).
+with Lean/Mathlib and Isabelle/HOL martingale work). The formalization
+operates over finite sample spaces (`finType`), which eliminates the
+integrability conditions and null-set subtleties present in the
+measure-theoretic version. Priority claims are based on a survey of
+Lean/Mathlib, the Isabelle AFP, and the Coq/Rocq opam registry as of
+March 2026.
 
 The proofs are carried out over MathComp's `realType` using MathComp
 Analysis for logarithms and real exponentiation, with no axioms beyond
@@ -152,11 +157,11 @@ To generate HTML documentation:
 make doc
 ```
 
-This produces browsable coqdoc output in `html/`. The latest build is published at https://charlescnorton.github.io/auditing-verified/.
+This produces browsable coqdoc output in `html/`. A snapshot is hosted at https://charlescnorton.github.io/auditing-verified/ (may lag behind the latest source).
 
 ## Dependencies
 
-- [Rocq](https://rocq-prover.org/) 9.0 (or Coq 8.20)
+- [Rocq](https://rocq-prover.org/) 9.0
 - [MathComp](https://math-comp.github.io/) &ge; 2.5
 - [MathComp Analysis](https://github.com/math-comp/analysis) &ge; 1.15
 - [MathComp Zify](https://github.com/math-comp/mczify) (for the Q-to-R bridge)
@@ -223,7 +228,7 @@ landscape of machine-checked probability:
   MathComp Analysis does not contain martingale theory.
 
 To our knowledge, no proof assistant contains a formalization of
-Ville's inequality, the &Scaron;id&aacute;k correction, or
+discrete Ville's inequality, the &Scaron;id&aacute;k correction, or
 risk-limiting audit theory prior to this work.
 
 ## References

@@ -57,6 +57,8 @@ Proof. by vm_compute; discriminate. Qed.
 
 End ConcreteValidation.
 
+Close Scope Q_scope.
+
 (* --- Maricopa County 2024 General Election instantiation ---
    k = 265 contests (144 elected offices + 45 judges + 76 ballot
    measures). Source: Maricopa County Elections Department,
@@ -79,14 +81,13 @@ Lemma maricopa_80_bound :
   (Qpower (1 - alpha_concrete) 80 <= Qmake 17 1000)%Q.
 Proof. by vm_compute; discriminate. Qed.
 
-(** Under MACRO escalation, joint pass probability is at least 1 - alpha = 95%. *)
+(** Under MACRO escalation, false assurance is capped at alpha = 5%
+    regardless of contest count: [(19/20)^265 <= 19/20]. *)
 Lemma maricopa_macro_bound :
-  (1 - alpha_concrete <= Qpower (1 - alpha_concrete) 1)%Q.
+  (Qpower (1 - alpha_concrete) 265 <= 1 - alpha_concrete)%Q.
 Proof. by vm_compute; discriminate. Qed.
 
 End Maricopa2024.
-
-Close Scope Q_scope.
 
 (* --- Phase 2: transfer to realType via QR injection ---
    QR : Q -> R maps through int_of_Z to avoid MathComp's Peano-based
@@ -360,17 +361,12 @@ Fixpoint search_k (one_minus_alpha one_minus_delta : Q)
 Definition min_k (alpha delta : Q) : nat :=
   search_k (1 - alpha) (1 - delta) 0 10000 1.
 
-Close Scope Q_scope.
-
 Eval vm_compute in min_k (Qmake 1 20) (Qmake 99 100).
 
 (** The minimum k for alpha=5%, delta=99% is exactly 90. *)
 Lemma min_k_is_90 :
   min_k (Qmake 1 20) (Qmake 99 100) = 90%N.
 Proof. by vm_compute. Qed.
-(* Expected: 90 *)
-
-Open Scope Q_scope.
 
 (** [search_k] returns immediately when the accumulator meets the threshold. *)
 Lemma search_k_hit (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
@@ -411,4 +407,5 @@ From Stdlib Require Import Extraction ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZI
 (** Extract [min_k] and its dependencies to OCaml.  The extracted
     code uses native OCaml integers for [nat] and [Z]. *)
 Extraction Language OCaml.
+Set Extraction Output Directory ".".
 Extraction "min_k" min_k search_k.

@@ -372,15 +372,6 @@ have -> : 1 - (a + b) = (1 - a) - b by rewrite opprD addrA.
 by rewrite ltrD2l ltrN2.
 Qed.
 
-(** The Fréchet lower bound [1 - (a + b)] is strictly below the
-    independence product [(1-a)(1-b)] when both risk limits are in (0,1).
-    This is a direct corollary of [weierstrass_strict_2] and provides
-    the concrete witness for negative dependence at [k = 2]. *)
-Lemma frechet_lower_strict_2 (a b : R) :
-  0 < a -> a < 1 -> 0 < b -> b < 1 ->
-  1 - (a + b) < (1 - a) * (1 - b).
-Proof. exact: weierstrass_strict_2. Qed.
-
 (** p_joint = 0 witnesses negative dependence for any [k >= 2]:
     the independence product is strictly above 0, so setting
     p_joint = 0 makes [F_dep = 1] strictly above [F_indep]. *)
@@ -441,7 +432,7 @@ Qed.
 (* --- Bibliography ---
 
    frechet_upper_bound, frechet_lower_bound, frechet_sandwich,
-   independent_between_frechet, frechet_lower_strict_2,
+   independent_between_frechet,
    frechet_lower_strict_general:
      M. Fréchet, "Généralisation du théorème des probabilités
      totales," Fundamenta Mathematicae, 25:379-387, 1935.

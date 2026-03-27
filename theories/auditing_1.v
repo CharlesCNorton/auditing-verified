@@ -285,6 +285,7 @@ apply: (le_trans (ler_wpM2r Hdiff_ge0 Hexpa_le1)).
 by rewrite mul1r /b /a.
 Qed.
 
+(** Algebraic identity: [k*alpha/(1-alpha) - k*alpha = k*alpha^2/(1-alpha)]. *)
 (** Powers of [x] in [0,1] are anti-monotone: [x^n <= x^m] when [m <= n]. *)
 Lemma pow_le1_anti (x : R) (m n : nat) :
   0 <= x -> x <= 1 -> (m <= n)%N -> x ^+ n <= x ^+ m.
@@ -1284,6 +1285,10 @@ End RiskLimitingAudit.
    files — keeps type-checking fast and error messages readable. *)
 Strategy 100 [false_assurance false_assurance_hetero joint_pass].
 
+Arguments false_assurance {R} alpha k.
+Arguments false_assurance_hetero {R k} alphas.
+Arguments joint_pass {R k} ps.
+
 (* Ballot overlap theory is in overlap_5.v. *)
 
 (* Finite probability space and independence are in probability_4.v. *)
@@ -1441,8 +1446,8 @@ Print Assumptions fwer_ge_fcr.
      A. A. Markov, Wahrscheinlichkeitsrechnung, Teubner,
      Leipzig, 1912.  (General statement.)
 
-   lr_expectation_1, ballot_plr, degradation_from_per_contest,
-   bravo_degradation_uniform (in bravo_7.v):
+   lr_expectation_1, ballot_plr, degradation_from_per_contest
+   (in bravo_7.v):
      M. Lindeman, P. B. Stark, and V. S. Yates, "BRAVO: ballot-
      polling risk-limiting audits to verify outcomes," 2012
      Electronic Voting Technology Workshop / Workshop on
