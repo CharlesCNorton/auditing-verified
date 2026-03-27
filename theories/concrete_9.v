@@ -263,6 +263,14 @@ rewrite /QR /Qnum /Qden /=.
 by rewrite -mulrDl -intrD -rmorphD.
 Qed.
 
+(** [QR] distributes over subtraction for same-denominator arguments. *)
+Lemma QR_sub_same_denom (a b : Z) (d : positive) :
+  QR (Qmake a d) - QR (Qmake b d) = QR (Qmake (a - b) d).
+Proof.
+rewrite /QR /Qnum /Qden /=.
+by rewrite -mulrBl -intrB -rmorphB.
+Qed.
+
 (** At k=90 the QR-transferred false assurance exceeds delta=99%. *)
 Lemma bridge_bound_90 :
   ratr delta_r <= @false_assurance R (ratr alpha_r) 90.

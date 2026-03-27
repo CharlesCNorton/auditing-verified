@@ -338,6 +338,18 @@ rewrite !exprS; apply: (le_trans (ler_wpM2l H0 IH)).
 by apply: ler_wpM2r => //; exact: exprn_ge0.
 Qed.
 
+(** Joint non-strict monotonicity: [F(alpha1,k1) <= F(alpha2,k2)] when both
+    [alpha] and [k] increase (weakly). *)
+Lemma false_assurance_bivariate_mono (alpha1 alpha2 : R) (k1 k2 : nat) :
+  0 <= alpha1 -> alpha1 <= alpha2 -> alpha2 <= 1 ->
+  (k1 <= k2)%N ->
+  false_assurance alpha1 k1 <= false_assurance alpha2 k2.
+Proof.
+move=> Ha1 Hle Ha2 Hk.
+apply: (le_trans (false_assurance_alpha_mono k1 Ha1 Hle Ha2)).
+exact: false_assurance_mono (le_trans Ha1 Hle) Ha2 Hk.
+Qed.
+
 (** Strict monotonicity of [x^k] in [x] for [k > 0] and [0 <= x]. *)
 Lemma exprn_strict_mono (x y : R) (k : nat) :
   0 <= x -> x < y -> (0 < k)%N -> x ^+ k < y ^+ k.

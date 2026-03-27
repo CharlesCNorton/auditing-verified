@@ -106,6 +106,20 @@ rewrite /two_pt_mu eqxx big1 ?addr0; last first.
 by rewrite opprD opprK addrA addrN add0r.
 Qed.
 
+(** Strict positivity of [two_pt_mu] on its support when [0 < t < 1].
+    Needed to instantiate the cell-positivity hypothesis [Hcell] for
+    the supermartingale machinery in [ville_6.v]. *)
+Lemma two_pt_mu_pos_pass :
+  0 < t -> t < 1 -> 0 < two_pt_mu all_pass.
+Proof. by move=> _ Ht1'; rewrite /two_pt_mu eqxx subr_gt0. Qed.
+
+Lemma two_pt_mu_pos_fail :
+  0 < t -> t < 1 -> 0 < two_pt_mu all_fail.
+Proof.
+move=> Ht0' _; rewrite /two_pt_mu.
+by rewrite eq_sym (negbTE all_pass_ne_fail) eqxx.
+Qed.
+
 End TwoPointDistribution.
 
 (* ================================================================== *)
