@@ -310,6 +310,24 @@ move=> Ha0 Ha1; rewrite -exp_sandwich_gap_identity //.
 exact: exp_sandwich_gap.
 Qed.
 
+(** The exponential sandwich gap is O(alpha^2): for [alpha in (0,1)]
+    with [1/2 <= 1 - alpha], [k*alpha^2/(1-alpha) <= 2*k*alpha^2].
+    Shows the sandwich is asymptotically tight as [alpha -> 0]. *)
+Lemma exp_sandwich_gap_order (alpha : R) (k : nat) :
+  0 < alpha -> alpha < 1 ->
+  2%:R^-1 <= 1 - alpha ->
+  k%:R * alpha ^+ 2 / (1 - alpha) <= 2%:R * k%:R * alpha ^+ 2.
+Proof.
+move=> Ha0 Ha1 H1a_half.
+have H1a : 0 < 1 - alpha by rewrite subr_gt0.
+have Hka2 : 0 <= k%:R * alpha ^+ 2.
+  by rewrite mulr_ge0 ?ler0n // exprn_ge0 // ltW.
+rewrite -[X in _ <= X]mulrA [2%:R * _]mulrC.
+apply: ler_wpM2l => //.
+have H2inv : (0 : R) < 2%:R^-1 by rewrite invr_gt0 ltr0n.
+by rewrite -[2%:R]invrK (lef_pV2 H1a H2inv).
+Qed.
+
 (** Powers of [x] in [0,1] are anti-monotone: [x^n <= x^m] when [m <= n]. *)
 Lemma pow_le1_anti (x : R) (m n : nat) :
   0 <= x -> x <= 1 -> (m <= n)%N -> x ^+ n <= x ^+ m.
