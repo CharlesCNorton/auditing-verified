@@ -22,6 +22,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Import Order.Theory GRing.Theory Num.Theory.
+Close Scope N_scope.
 Open Scope ring_scope.
 
 From Auditing Require Import auditing_1 probability_4 ville_6.
@@ -541,6 +542,26 @@ rewrite (big_pred1 x) // => f; apply/idP/idP.
 - move/forallP => Hfx; apply/eqP/ffunP => i.
   by move/implyP: (Hfx i) => /(_ (ltn_ord i)) /eqP.
 - by move/eqP => ->; exact: ballot_F_refl.
+Qed.
+
+(** Equivalence: [ballot_F n.+1] splits as [ballot_F n] plus the [n]-th
+    coordinate constraint. *)
+Lemma ballot_F_split (n : nat) (Hn : (n < N)%N)
+    (x f : {ffun 'I_N -> bool}) :
+  ballot_F n.+1 x f = ballot_F n x f && (f (Ordinal Hn) == x (Ordinal Hn)).
+Proof.
+apply/idP/andP.
+- move/forallP => H; split.
+  + apply/forallP => i; apply/implyP => Hi.
+    have /implyP Hi1 := H i.
+    exact: (Hi1 (leq_trans Hi (leqnSn n))).
+  + have /implyP Hn1 := H (Ordinal Hn).
+    by rewrite eq_sym; exact: (Hn1 (ltnSn n)).
+- move=> [Hn_cell /eqP Heq]; apply/forallP => i; apply/implyP.
+  rewrite ltnS leq_eqVlt => /orP [/eqP Hi|Hi].
+  + have -> : i = Ordinal Hn by apply: val_inj; rewrite /= Hi.
+    by rewrite eq_sym; apply/eqP.
+  + by move: (forallP Hn_cell i); rewrite Hi.
 Qed.
 
 End BallotProductSpace.
