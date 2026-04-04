@@ -815,7 +815,106 @@ move=> Hcell; rewrite (ballot_F_cond_exp_free Hn x (lr p) Hcell).
 exact: lr_expectation_1.
 Qed.
 
+(** ** Time-varying product likelihood ratio *)
+
+(** [ballot_M n f]: the product likelihood ratio at step [n], using
+    only the first [n] coordinates of [f].  Defined as a filtered
+    product to avoid dependent-type proof terms in the time index. *)
+Definition ballot_M (n : nat) (f : {ffun 'I_N -> bool}) : R :=
+  \prod_(i < N | (i < n)%N) lr p (f i).
+
+Lemma ballot_M_0 (f : {ffun 'I_N -> bool}) : ballot_M 0 f = 1.
+Proof. by rewrite /ballot_M big_pred0 // => i; rewrite ltn0. Qed.
+
+Lemma ballot_M_ge0 (n : nat) (f : {ffun 'I_N -> bool}) :
+  0 <= ballot_M n f.
+Proof. by apply: prodr_ge0 => i _; exact: lr_ge0. Qed.
+
+Lemma ballot_M_step (n : nat) (Hn : (n < N)%N)
+    (f : {ffun 'I_N -> bool}) :
+  ballot_M n.+1 f = ballot_M n f * lr p (f (Ordinal Hn)).
+Proof.
+rewrite /ballot_M (bigD1 (Ordinal Hn)) //=.
+congr (lr p _ * _); apply: eq_bigl => i.
+by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
+Qed.
+
+Lemma ballot_M_adapted (n : nat) (x f : {ffun 'I_N -> bool}) :
+  ballot_F n x f -> ballot_M n x = ballot_M n f.
+Proof.
+move/forallP => Hxf; apply: eq_bigr => i /andP [_ Hi].
+by congr (lr p _); apply/eqP; exact: implyP (Hxf i) Hi.
+Qed.
+
+(** ** Supermartingale property *)
+
+Lemma ballot_M_supermartingale :
+  @supermartingale R _ ballot_prod_mu ballot_F ballot_M.
+Proof.
+split.
+- by move=> n x y Hxy; exact: ballot_M_adapted Hxy.
+- move=> n x.
+  case: (ltnP n N) => Hn.
+  + (* n < N: factor ballot_M(n+1) = ballot_M(n) * lr(f_n) *)
+    set j := Ordinal Hn.
+    rewrite /cond_exp.
+    set den := \sum_(f | ballot_F n x f) ballot_prod_mu f.
+    have Hden : 0 < den := ballot_F_cell_pos n x.
+    (* Rewrite numerator: replace M(n+1) with M(n) * lr *)
+    have Hnum : \sum_(f | ballot_F n x f) ballot_prod_mu f * ballot_M n.+1 f =
+      ballot_M n x * \sum_(f | ballot_F n x f) ballot_prod_mu f * lr p (f j).
+      rewrite mulr_sumr; apply: eq_bigr => f Hf.
+      by rewrite (ballot_M_step Hn) mulrA -(ballot_M_adapted Hf).
+    rewrite Hnum mulrA mulfK; last exact: gt_eqF.
+    (* The remaining sum / den is cond_exp of lr = 1 *)
+    have := ballot_F_cond_exp_lr Hn x Hden.
+    by rewrite /cond_exp -/den => ->; rewrite mulr1.
+  + (* n >= N: ballot_M is constant *)
+    rewrite (@cond_exp_measurable R _ ballot_prod_mu ballot_F
+      (ballot_M n.+1) n x ballot_filtration) //.
+    * move=> f Hf; rewrite /ballot_M; apply: eq_bigl => i.
+      by rewrite (ltn_leq_trans (ltn_ord i) Hn)
+                 (ltn_leq_trans (ltn_ord i) (leqW Hn)).
+    * exact: ballot_F_cell_pos.
+Qed.
+
+Lemma ballot_M_Exp0 : @Exp R _ ballot_prod_mu (ballot_M 0) <= 1.
+Proof.
+rewrite /Exp (eq_bigr (fun f => ballot_prod_mu f)); last first.
+  by move=> f _; rewrite ballot_M_0 mulr1.
+by rewrite ballot_prod_mu_sum1.
+Qed.
+
+(** Ville's inequality for the product likelihood ratio on the ballot
+    product space. *)
+Lemma ballot_M_ville (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  @Pr R _ ballot_prod_mu
+    (fun f => alpha^-1 <= ballot_M n f) <= alpha.
+Proof.
+move=> Ha0 Ha1.
+exact: (@ville_ineq R _ ballot_prod_mu ballot_F ballot_M alpha n
+  ballot_filtration ballot_M_supermartingale
+  ballot_F_cell_pos (fun k x => ballot_M_ge0 k x)
+  Ha0 Ha1 ballot_M_Exp0).
+Qed.
+
 End BallotProductSpace.
+
+(** ** Degradation connection *)
+
+(** End-to-end: for [k] independent contests, each with a per-contest
+    Ville bound, the joint false assurance is bounded by
+    [false_assurance_hetero].  The per-contest pass probability under
+    the null is [1 - alpha_i] (from Ville), satisfying the
+    [degradation_from_per_contest] constraint. *)
+Lemma bravo_degradation (R : realType) (k : nat)
+    (alphas : 'I_k -> R)
+    (pass_probs : 'I_k -> R) :
+  (forall i, 0 <= alphas i <= 1) ->
+  (forall i, 0 <= pass_probs i <= 1 - alphas i) ->
+  false_assurance_hetero alphas <= 1 - joint_pass pass_probs.
+Proof. exact: degradation_from_per_contest. Qed.
 
 (** Generalized product-measure normalization: requires only [0 < p < 1],
     not [p > 1/2]. The null-hypothesis restriction is needed for the
