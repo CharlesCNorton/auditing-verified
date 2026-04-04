@@ -808,6 +808,25 @@ Qed.
 
 End PartitionFiltration.
 
+(** ** Downstream example: discrete partition yields filtration *)
+
+(** The discrete partition (singletons) is constant and refining,
+    so [partition_filtration] produces a valid filtration.  This
+    witnesses that [partition_filtration] fires on a concrete input. *)
+Lemma discrete_partition_filtration (Omega : finType) :
+  @filtration Omega (fun n => partition_equiv [set [set x] | x in Omega]).
+Proof.
+apply: partition_filtration => [n|n|n A HA].
+- apply/setP => x; rewrite in_setT /cover.
+  apply/bigcupP; exists [set x]; last by rewrite inE.
+  by apply/imsetP; exists x.
+- apply/trivIsetP => _ _ /imsetP [a _ ->] /imsetP [b _ ->] /negP Hne.
+  rewrite -setI_eq0; apply/eqP/setP => z; rewrite !inE.
+  apply/andP; case => /eqP -> /eqP Hab.
+  by apply: Hne; rewrite Hab.
+- by exists A; [exact: HA | apply/subsetP].
+Qed.
+
 (* --- Bibliography ---
 
    tower_property:
