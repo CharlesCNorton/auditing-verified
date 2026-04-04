@@ -486,15 +486,25 @@ Proof. by []. Qed.
 
 Close Scope Q_scope.
 
-(* --- Extraction to OCaml/Haskell ---
+(* --- Extraction to OCaml ---
    The search_k and min_k functions are purely computational (no
    axioms, no proofs-as-programs). They can be extracted to OCaml
-   or Haskell for use outside the proof assistant. *)
+   for use outside the proof assistant.
+
+   The generated [min_k.ml] is auto-generated and overwritten on
+   each build. Native OCaml integers are used for [nat] and [Z]
+   via [ExtrOcamlNatInt] and [ExtrOcamlZInt]. The remaining bulk
+   (~500 lines) is Stdlib's positional-number parsing and [Q]
+   arithmetic infrastructure, which is unavoidable when extracting
+   [Qle_bool]-based computation. The public interface [min_k.mli]
+   is compact.
+
+   Usage (after extraction):
+     min_k {qnum=1; qden=20} {qnum=99; qden=100}  (* returns 90 *)
+*)
 
 From Stdlib Require Import Extraction ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZInt.
 
-(** Extract [min_k] and its dependencies to OCaml.  The extracted
-    code uses native OCaml integers for [nat] and [Z]. *)
 Extraction Language OCaml.
 Set Extraction Output Directory ".".
 Extraction "min_k" min_k search_k.

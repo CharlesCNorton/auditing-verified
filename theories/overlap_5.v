@@ -41,7 +41,12 @@ Section BallotOverlap.
 Variable R : realType.
 
 (** [k] contests, [n] ballot styles.  [covers j i] means ballot
-    style [j] includes contest [i]. *)
+    style [j] includes contest [i].
+
+    N.B. Several lemmas below are domain aliases: thin wrappers around
+    core results from [auditing_1.v] and [dependent_3.v], re-exported
+    under election-auditing-specific names for readability in the
+    overlap context. They add no new mathematical content. *)
 Variables (k n : nat) (covers : 'I_n -> 'I_k -> bool).
 
 (** Full coverage: every contest appears on at least one ballot style. *)

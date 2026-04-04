@@ -33,6 +33,11 @@ Variable R : realType.
    The independent model assumes joint_pass = prod p_i. Under arbitrary
    dependence, the joint pass probability p_joint satisfies only the
    marginal constraints: p_joint <= 1 - alpha_i for each contest i.
+
+   N.B. Some lemmas (e.g. [macro_fa_le_hetero], [overlap_bound])
+   are domain aliases: thin wrappers around core [auditing_1.v]
+   results, re-exported under election-auditing names for
+   readability.  They add no new mathematical content.
    No product structure is assumed.
 
    The union bound (F <= sum alpha_i) does NOT follow from marginals
