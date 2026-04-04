@@ -1003,6 +1003,387 @@ End MultiplicativeStep.
     algebraic and apply to any mechanism that delivers a per-contest
     risk bound. *)
 
+(** ** General ballot model (multi-candidate) *)
+
+(** Generalizes the binary ballot model from [bool] to an arbitrary
+    [finType].  The product measure, natural filtration, cell mass
+    factorization, and supermartingale machinery carry over with
+    [swap_at] replacing [flip_at]. *)
+
+Section GeneralBallot.
+
+Variable R : realType.
+Variable C : finType.
+Variable mu0 : C -> R.
+Hypothesis mu0_pos : forall c : C, 0 < mu0 c.
+Hypothesis mu0_sum1 : \sum_(c : C) mu0 c = 1.
+
+Variable gen_lr : C -> R.
+Hypothesis gen_lr_ge0 : forall c, 0 <= gen_lr c.
+Hypothesis gen_lr_exp1 : \sum_(c : C) mu0 c * gen_lr c = 1.
+
+Variable N : nat.
+Hypothesis HN : (0 < N)%N.
+
+Definition gen_prod_mu (f : {ffun 'I_N -> C}) : R :=
+  \prod_(i < N) mu0 (f i).
+
+Lemma gen_prod_mu_ge0 (f : {ffun 'I_N -> C}) : 0 <= gen_prod_mu f.
+Proof. by apply: prodr_ge0 => i _; exact: ltW. Qed.
+
+Lemma gen_prod_mu_pos (f : {ffun 'I_N -> C}) : 0 < gen_prod_mu f.
+Proof. by apply: prodr_gt0 => i _. Qed.
+
+Lemma gen_prod_mu_sum1 :
+  \sum_(f : {ffun 'I_N -> C}) gen_prod_mu f = 1.
+Proof.
+rewrite /gen_prod_mu.
+have <- : \prod_(i < N) \sum_(c : C) mu0 c =
+          \sum_(f : {ffun 'I_N -> C}) \prod_(i < N) mu0 (f i).
+  exact: bigA_distr_bigA.
+by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: mu0_sum1.
+Qed.
+
+Definition gen_F (n : nat) (x y : {ffun 'I_N -> C}) : bool :=
+  [forall i : 'I_N, (i < n)%N ==> (x i == y i)].
+
+Lemma gen_F_refl : forall n, reflexive (@gen_F n).
+Proof. by move=> n x; apply/forallP => i; apply/implyP => _; rewrite eqxx. Qed.
+
+Lemma gen_F_sym : forall n, symmetric (@gen_F n).
+Proof.
+move=> n x y; apply/forallP/forallP => H i;
+  by move/(_ i)/implyP: H => H; apply/implyP => Hi; rewrite eq_sym; exact: H.
+Qed.
+
+Lemma gen_F_trans : forall n, transitive (@gen_F n).
+Proof.
+move=> n y x z /forallP Hxy /forallP Hyz.
+apply/forallP => i; apply/implyP => Hi.
+by rewrite (eqP (implyP (Hxy i) Hi)) (eqP (implyP (Hyz i) Hi)).
+Qed.
+
+Lemma gen_F_refine : forall n x y, gen_F n.+1 x y -> gen_F n x y.
+Proof.
+move=> n x y /forallP H; apply/forallP => i; apply/implyP => Hi.
+by apply: (implyP (H i)); exact: ltnW.
+Qed.
+
+Lemma gen_filtration : @filtration _ gen_F.
+Proof.
+by split; [exact: gen_F_refl | exact: gen_F_sym |
+           exact: gen_F_trans | exact: gen_F_refine].
+Qed.
+
+Lemma gen_F_cell_pos (n : nat) (x : {ffun 'I_N -> C}) :
+  0 < \sum_(y | gen_F n x y) gen_prod_mu y.
+Proof.
+rewrite (bigD1 x); last exact: gen_F_refl.
+apply: ltr_pwDl; first exact: gen_prod_mu_pos.
+by apply: sumr_ge0 => y _; exact: gen_prod_mu_ge0.
+Qed.
+
+Lemma gen_F_split (n : nat) (Hn : (n < N)%N)
+    (x f : {ffun 'I_N -> C}) :
+  gen_F n.+1 x f = gen_F n x f && (f (Ordinal Hn) == x (Ordinal Hn)).
+Proof.
+apply/idP/andP.
+- move/forallP => H; split.
+  + apply/forallP => i; apply/implyP => Hi.
+    by apply: (implyP (H i)); exact: leq_trans Hi (leqnSn n).
+  + by rewrite eq_sym; apply: (implyP (H (Ordinal Hn))); exact: ltnSn.
+- move=> [/forallP Hn_cell /eqP Heq]; apply/forallP => i; apply/implyP.
+  rewrite ltnS leq_eqVlt => /orP [/eqP Hi|Hi].
+  + have -> : i = Ordinal Hn by apply: val_inj; rewrite /= Hi.
+    by rewrite eq_sym; apply/eqP.
+  + by exact: (implyP (Hn_cell i)).
+Qed.
+
+(** [swap_at j c1 c2 f]: swap values [c1] and [c2] at coordinate [j],
+    leaving all other coordinates and values unchanged.  Generalizes
+    [flip_at] from [bool] to an arbitrary [finType]. *)
+Definition swap_at (j : 'I_N) (c1 c2 : C) (f : {ffun 'I_N -> C})
+    : {ffun 'I_N -> C} :=
+  [ffun i => if i == j then
+    if f i == c1 then c2
+    else if f i == c2 then c1
+    else f i
+  else f i].
+
+Lemma swap_at_invol (j : 'I_N) (c1 c2 : C) :
+  involutive (swap_at j c1 c2).
+Proof.
+move=> f; apply/ffunP => i; rewrite !ffunE.
+case: eqP => [->|//].
+by case: eqP => [->|]; [rewrite eqxx; case: eqP |
+  case: eqP => [->|//]; rewrite eqxx].
+Qed.
+
+Lemma swap_at_inj (j : 'I_N) (c1 c2 : C) :
+  injective (swap_at j c1 c2).
+Proof.
+by move=> a b /(congr1 (swap_at j c1 c2)); rewrite !swap_at_invol.
+Qed.
+
+Lemma swap_at_ne (j : 'I_N) (c1 c2 : C)
+    (f : {ffun 'I_N -> C}) (i : 'I_N) :
+  i != j -> (swap_at j c1 c2 f) i = f i.
+Proof. by rewrite ffunE => /negbTE ->. Qed.
+
+Lemma swap_at_eq_c1 (j : 'I_N) (c1 c2 : C)
+    (f : {ffun 'I_N -> C}) :
+  f j = c1 -> (swap_at j c1 c2 f) j = c2.
+Proof. by move=> ->; rewrite ffunE eqxx eqxx. Qed.
+
+Lemma swap_at_eq_c2 (j : 'I_N) (c1 c2 : C)
+    (f : {ffun 'I_N -> C}) :
+  f j = c2 -> (swap_at j c1 c2 f) j = c1.
+Proof.
+move=> ->; rewrite ffunE eqxx.
+by case: eqP => [->|_]; rewrite eqxx.
+Qed.
+
+Lemma swap_at_gen_F (n : nat) (j : 'I_N) (c1 c2 : C)
+    (x f : {ffun 'I_N -> C}) :
+  (n <= j)%N -> gen_F n x (swap_at j c1 c2 f) = gen_F n x f.
+Proof.
+move=> Hnj; apply/forallP/forallP => /= H i;
+  have /implyP Hi := H i; apply/implyP => Hin;
+  have Hij : i != j by [apply: contraTN Hin => /eqP ->; rewrite -leqNgt];
+  move: (Hi Hin); by rewrite swap_at_ne.
+Qed.
+
+Lemma swap_at_reduced_prod (j : 'I_N) (c1 c2 : C)
+    (f : {ffun 'I_N -> C}) :
+  \prod_(i < N | i != j) mu0 ((swap_at j c1 c2 f) i) =
+  \prod_(i < N | i != j) mu0 (f i).
+Proof.
+by apply: eq_bigr => i Hij; rewrite swap_at_ne.
+Qed.
+
+Strategy 100 [swap_at gen_prod_mu].
+
+(** Cell mass recurrence for the general ballot model. *)
+Lemma gen_cell_mass_step (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> C}) :
+  \sum_(f | gen_F n.+1 x f) gen_prod_mu f =
+  mu0 (x (Ordinal Hn)) *
+  \sum_(f | gen_F n x f) gen_prod_mu f.
+Proof.
+set j := Ordinal Hn.
+set rprod := fun f : {ffun 'I_N -> C} =>
+  \prod_(i < N | i != j) mu0 (f i).
+set S := \sum_(f | gen_F n.+1 x f) rprod f.
+(* Step A: cell(n+1) = mu0(x j) * S *)
+have HA : \sum_(f | gen_F n.+1 x f) gen_prod_mu f =
+          mu0 (x j) * S.
+  rewrite /S mulr_sumr; apply: eq_bigr => f Hf.
+  rewrite /gen_prod_mu (bigD1 j) //=; congr (_ * _).
+  by move: Hf; rewrite (gen_F_split Hn) => /andP [_ /eqP ->].
+(* Step B: cell(n) = S *)
+suff HB : \sum_(f | gen_F n x f) gen_prod_mu f = S
+  by rewrite HA HB.
+rewrite (bigID (fun f : {ffun _ -> _} => f j == x j)) /=.
+have Hfactor : forall f : {ffun 'I_N -> C},
+  gen_prod_mu f = mu0 (f j) * rprod f.
+  by move=> f; rewrite /gen_prod_mu (bigD1 j).
+(* Agree half *)
+have Hagree :
+  \sum_(f | gen_F n x f && (f j == x j)) gen_prod_mu f =
+  mu0 (x j) * S.
+  transitivity (\sum_(f | gen_F n.+1 x f) gen_prod_mu f).
+    by apply: eq_bigl => f; rewrite (gen_F_split Hn).
+  exact: HA.
+(* Disagree rprod-sum = S via swap_at reindex *)
+have Hswap_rprod :
+  \sum_(f | gen_F n x f && (f j != x j)) rprod f = S.
+  rewrite /S; symmetry.
+  rewrite (reindex_inj (swap_at_inj j (x j))).
+  apply: eq_big => f.
+  - rewrite (gen_F_split Hn) (swap_at_gen_F _ (leqnn _)).
+    congr (_ && _); rewrite ffunE eqxx.
+    case: eqP => [->|Hne]; first by rewrite eqxx.
+    by case: eqP => //= ->; rewrite eqxx.
+  - by move=> _; exact: swap_at_reduced_prod.
+(* Disagree half *)
+have Hdisagree :
+  \sum_(f | gen_F n x f && (f j != x j)) gen_prod_mu f =
+  (1 - mu0 (x j)) * S.
+  rewrite -Hswap_rprod mulrBl mul1r -Hagree.
+  rewrite [X in X - _](bigID (fun f : {ffun _ -> _} => f j == x j)) /=.
+  by rewrite addrK.
+rewrite Hagree Hdisagree -mulrDl addrCA subrr addr0 mul1r.
+Qed.
+
+(** General cell mass formula. *)
+Lemma gen_cell_mass (n : nat) (Hn : (n <= N)%N)
+    (x : {ffun 'I_N -> C}) :
+  \sum_(f : {ffun 'I_N -> C} | gen_F n x f) gen_prod_mu f =
+  \prod_(i < N | (i < n)%N) mu0 (x i).
+Proof.
+elim: n Hn => [|n IH] Hn.
+  rewrite big_pred0; last by move=> i; rewrite ltn0.
+  have -> : \sum_(f | gen_F 0 x f) gen_prod_mu f =
+            \sum_f gen_prod_mu f.
+    by apply: eq_bigl => f; apply/forallP => i; rewrite ltn0.
+  exact: gen_prod_mu_sum1.
+rewrite (gen_cell_mass_step Hn) (IH (ltnW Hn)).
+set j := Ordinal (n:=N) Hn.
+rewrite (bigD1 j) /=; last by [].
+congr (mu0 (x j) * _); apply: eq_bigl => i.
+by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
+Qed.
+
+(** Coordinate restriction for the general model. *)
+Lemma gen_cell_mass_coord (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> C}) (c : C) :
+  \sum_(f | gen_F n x f && (f (Ordinal Hn) == c)) gen_prod_mu f =
+  mu0 c * \sum_(f | gen_F n x f) gen_prod_mu f.
+Proof.
+set j := Ordinal Hn.
+set Cell := \sum_(f | gen_F n x f) gen_prod_mu f.
+have Hsplit : Cell =
+  \sum_(f | gen_F n x f && (f j == x j)) gen_prod_mu f +
+  \sum_(f | gen_F n x f && (f j != x j)) gen_prod_mu f
+  by rewrite -bigID.
+have Hagree : \sum_(f | gen_F n x f && (f j == x j)) gen_prod_mu f =
+  mu0 (x j) * Cell.
+  rewrite -/Cell -(gen_cell_mass_step Hn).
+  by apply: eq_bigl => f; rewrite (gen_F_split Hn).
+case: (boolP (c == x j)) => [/eqP ->|Hne]; first exact: Hagree.
+(* c != x j: use swap_at to reduce to the agree case *)
+rewrite -(gen_cell_mass_step Hn) in Hagree.
+have Hswap :
+  \sum_(f | gen_F n x f && (f j == c)) gen_prod_mu f =
+  mu0 c * Cell.
+  (* Swap c and x j, then apply Hagree-like argument *)
+  set xc := swap_at j (x j) c x.
+  have Hxcj : xc j = c by rewrite /xc swap_at_eq_c1.
+  (* cell(n+1) for xc = mu0(xc j) * cell(n) for xc *)
+  (* But cell(n) for xc = cell(n) for x (same first n coords) *)
+  have HcellEq : \sum_(f | gen_F n xc f) gen_prod_mu f = Cell.
+    apply: eq_bigl => f; rewrite /gen_F /xc.
+    apply/forallP/forallP => H i; have /implyP Hi := H i;
+      apply/implyP => Hin;
+      have Hij : i != j by [apply: contraTN Hin => /eqP ->; rewrite -leqNgt];
+      move: (Hi Hin); by rewrite swap_at_ne.
+  have := gen_cell_mass_step Hn xc.
+  rewrite Hxcj HcellEq => Hstep.
+  rewrite -Hstep; apply: eq_bigl => f.
+  rewrite (gen_F_split Hn) Hxcj; congr (_ && _).
+  rewrite /gen_F /xc; apply/forallP/forallP => H i;
+    have /implyP Hi := H i; apply/implyP => Hin;
+    have Hij : i != j by [apply: contraTN Hin => /eqP ->; rewrite -leqNgt];
+    move: (Hi Hin); by rewrite swap_at_ne.
+exact: Hswap.
+Qed.
+
+(** Conditional expectation of a free-coordinate function. *)
+Lemma gen_cond_exp_free (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> C}) (g : C -> R) :
+  0 < \sum_(f | gen_F n x f) gen_prod_mu f ->
+  @cond_exp R _ gen_prod_mu gen_F
+    (fun f => g (f (Ordinal Hn))) n x =
+  \sum_(c : C) mu0 c * g c.
+Proof.
+move=> Hcell; rewrite /cond_exp.
+set j := Ordinal Hn.
+have Hnum : \sum_(f | gen_F n x f) gen_prod_mu f * g (f j) =
+  (\sum_(c : C) mu0 c * g c) * \sum_(f | gen_F n x f) gen_prod_mu f.
+  rewrite mulr_sumr exchange_big /=.
+  apply: eq_bigr => c _.
+  rewrite -mulr_sumr -(gen_cell_mass_coord Hn x c).
+  rewrite mulr_sumr; apply: eq_bigr => f /andP [_ /eqP ->].
+  done.
+rewrite Hnum mulrA mulfK //; last exact: gt_eqF.
+done.
+Qed.
+
+(** E[gen_lr(f_n) | F_n] = 1 under the general model. *)
+Lemma gen_cond_exp_lr (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> C}) :
+  0 < \sum_(f | gen_F n x f) gen_prod_mu f ->
+  @cond_exp R _ gen_prod_mu gen_F
+    (fun f => gen_lr (f (Ordinal Hn))) n x = 1.
+Proof.
+move=> Hcell; rewrite (gen_cond_exp_free Hn x gen_lr Hcell).
+exact: gen_lr_exp1.
+Qed.
+
+(** Time-varying process for the general model. *)
+Definition gen_M (n : nat) (f : {ffun 'I_N -> C}) : R :=
+  \prod_(i < N | (i < n)%N) gen_lr (f i).
+
+Lemma gen_M_0 (f : {ffun 'I_N -> C}) : gen_M 0 f = 1.
+Proof. by rewrite /gen_M big_pred0 // => i; rewrite ltn0. Qed.
+
+Lemma gen_M_ge0 (n : nat) (f : {ffun 'I_N -> C}) : 0 <= gen_M n f.
+Proof. by apply: prodr_ge0 => i _; exact: gen_lr_ge0. Qed.
+
+Lemma gen_M_step (n : nat) (Hn : (n < N)%N)
+    (f : {ffun 'I_N -> C}) :
+  gen_M n.+1 f = gen_M n f * gen_lr (f (Ordinal Hn)).
+Proof.
+rewrite /gen_M (bigD1 (Ordinal Hn)) //=.
+congr (gen_lr _ * _); apply: eq_bigl => i.
+by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
+Qed.
+
+Lemma gen_M_adapted (n : nat) (x f : {ffun 'I_N -> C}) :
+  gen_F n x f -> gen_M n x = gen_M n f.
+Proof.
+move/forallP => Hxf; apply: eq_bigr => i /andP [_ Hi].
+by congr (gen_lr _); apply/eqP; exact: implyP (Hxf i) Hi.
+Qed.
+
+Lemma gen_M_supermartingale :
+  @supermartingale R _ gen_prod_mu gen_F gen_M.
+Proof.
+split.
+- by move=> n x y Hxy; exact: gen_M_adapted Hxy.
+- move=> n x.
+  case: (ltnP n N) => Hn.
+  + set j := Ordinal Hn.
+    rewrite /cond_exp.
+    set den := \sum_(f | gen_F n x f) gen_prod_mu f.
+    have Hden : 0 < den := gen_F_cell_pos n x.
+    have Hnum : \sum_(f | gen_F n x f) gen_prod_mu f * gen_M n.+1 f =
+      gen_M n x * \sum_(f | gen_F n x f) gen_prod_mu f * gen_lr (f j).
+      rewrite mulr_sumr; apply: eq_bigr => f Hf.
+      by rewrite (gen_M_step Hn) mulrA -(gen_M_adapted Hf).
+    rewrite Hnum mulrA mulfK; last exact: gt_eqF.
+    have := gen_cond_exp_lr Hn x Hden.
+    by rewrite /cond_exp -/den => ->; rewrite mulr1.
+  + rewrite (@cond_exp_measurable R _ gen_prod_mu gen_F
+      (gen_M n.+1) n x gen_filtration) //.
+    * move=> f Hf; rewrite /gen_M; apply: eq_bigl => i.
+      by rewrite (ltn_leq_trans (ltn_ord i) Hn)
+                 (ltn_leq_trans (ltn_ord i) (leqW Hn)).
+    * exact: gen_F_cell_pos.
+Qed.
+
+Lemma gen_M_Exp0 : @Exp R _ gen_prod_mu (gen_M 0) <= 1.
+Proof.
+rewrite /Exp (eq_bigr (fun f => gen_prod_mu f)); last first.
+  by move=> f _; rewrite gen_M_0 mulr1.
+by rewrite gen_prod_mu_sum1.
+Qed.
+
+(** Ville's inequality for the general ballot model. *)
+Lemma gen_M_ville (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  @Pr R _ gen_prod_mu
+    (fun f => alpha^-1 <= gen_M n f) <= alpha.
+Proof.
+move=> Ha0 Ha1.
+exact: (@ville_ineq R _ gen_prod_mu gen_F gen_M alpha n
+  gen_filtration gen_M_supermartingale
+  gen_F_cell_pos (fun k x => gen_M_ge0 k x)
+  Ha0 Ha1 gen_M_Exp0).
+Qed.
+
+End GeneralBallot.
+
 (* --- Bibliography ---
 
    ballot_mu, lr, lr_expectation_1, lr_Exp_eq1, lr_win_lt1,
