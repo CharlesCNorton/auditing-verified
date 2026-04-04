@@ -48,7 +48,8 @@ field `R`:
 | **AM-GM optimal allocation** | Uniform allocation minimizes false assurance for a given total risk budget. Strict optimality: any non-uniform split yields strictly higher false assurance. The uniform allocation is the unique minimizer. |
 | **Dependent audit model** | Under arbitrary dependence, the joint pass probability satisfies Fr&eacute;chet bounds. Positive dependence reduces false assurance below the independence baseline; negative dependence worsens it. The dependence gap _F<sub>dep</sub> &minus; F<sub>indep</sub> = &prod;(1&minus;&alpha;<sub>i</sub>) &minus; p<sub>joint</sub>_ classifies the regime. |
 | **MACRO model** | All-or-nothing escalation eliminates the multiplicity problem: false assurance equals the minimum individual risk limit, bounded by each _&alpha;<sub>j</sub>_ regardless of _k_. |
-| **Conservative risk limits** | When actual risks fall below their limits, the nominal bound overestimates. Equality holds only when every contest achieves its limit exactly. |
+| **Conservative risk limits** | When actual risks fall below their limits, the nominal bound overestimates. Equality holds only when every contest achieves its limit exactly. Quantitative sensitivity: if contest _j_'s risk drops by _&epsilon;_ below its limit, the gap is at least _&epsilon; &middot; &prod;<sub>i&ne;j</sub>(1&minus;&alpha;<sub>i</sub>)_. |
+| **Exponential sandwich gap** | The gap between upper and lower exponential bounds equals _k&alpha;<sup>2</sup>/(1&minus;&alpha;)_. This is _O(&alpha;<sup>2</sup>)_ for bounded _&alpha;_, proving asymptotic tightness as _&alpha; &rarr; 0_. |
 | **Ballot overlap** | Contests sharing ballot styles reduce the effective degradation parameter from _k_ (contests) to _n_ (ballot styles). Heterogeneous overlap bound via injective witness. Complement coloring: contests sharing a ballot style are grouped together, bounding the effective number of independent groups by _n_. |
 | **Sequential/anytime audits** | The degradation bound is mechanism-agnostic: it holds at any collection of stopping times, assuming per-contest bounds hold at each time step (the interface to Ville's inequality). |
 | **Continuity** | False assurance is continuous in _&alpha;_ and separately continuous in each heterogeneous coordinate. The coordinate slice is affine, hence C-infinity. |
@@ -76,12 +77,13 @@ field `R`:
 | **Normalization** | The two-point distribution on `{ffun 'I_k &rarr; bool}` (mass _1 &minus; t_ on all-pass, mass _t_ on all-fail) sums to 1. Proved via `bigD1` extraction. |
 | **Marginals** | Each contest's pass probability equals _1 &minus; t_ under the two-point distribution. |
 | **False assurance** | _1 &minus; Pr(all pass) = t_ exactly. Realizes the Fr&eacute;chet-Hoeffding extremal under maximal positive correlation. |
+| **Independence failure** | The two-point distribution does NOT satisfy `events_independent` when _k &ge; 2_ and _0 < t < 1_: the joint probability _1&minus;t_ differs from the product of marginals _(1&minus;t)<sup>k</sup>_. |
 
 ### Discrete supermartingale theory
 
 | Result | Statement |
 |---|---|
-| **Conditional expectation** | Defined as the cell-weighted average on a finite equivalence-relation filtration. Measurable functions are fixed points. |
+| **Conditional expectation** | Defined as the cell-weighted average on a finite equivalence-relation filtration. Measurable functions are fixed points. Idempotent: _E[E[X&mid;F<sub>n</sub>]&mid;F<sub>n</sub>] = E[X&mid;F<sub>n</sub>]_. |
 | **Tower property** | _E[E[X &mid; F<sub>n</sub>]] = E[X]_. Proved by `pair_big_dep` flattening to pair sums, `equiv_class_sum` for cell-mass cancellation, and `reindex_inj` with the pair-swap bijection. |
 | **Supermartingale monotonicity** | _E[M<sub>n+1</sub>] &le; E[M<sub>n</sub>]_ from the tower property and the supermartingale inequality. |
 | **Iterated monotonicity** | _E[M<sub>n</sub>] &le; E[M<sub>0</sub>]_ for all _n_, by induction. |
@@ -90,8 +92,10 @@ field `R`:
 | **Optional stopping theorem** | For a bounded stopping time &tau; &le; N: _E[M<sub>&tau;</sub>] &le; E[M<sub>0</sub>]_. The stopped process is shown to be a supermartingale via case analysis on &tau;(x) &le; n. |
 | **Ville at stopping times** | _Pr(M<sub>&tau;</sub> &ge; 1/&alpha;) &le; &alpha;_ for any bounded stopping time. Combines optional stopping with Markov. |
 | **Doob's maximal inequality** | _c &middot; Pr(M<sub>&tau;</sub> &ge; c) &le; E[M<sub>0</sub>]_ for any bounded stopping time and _c > 0_. |
-| **Martingale/submartingale** | Definitions for equality and reversed-inequality variants. Coercion lemmas to supermartingale. |
-| **Filtration-partition equivalence** | Equivalence classes of a filtration form a partition (cover, disjointness, non-emptiness). Partition-derived equivalence is reflexive, symmetric, transitive. Roundtrip: `partition_equiv (equiv_classes E) = E`. Filtration refinement implies partition refinement. |
+| **Martingale/submartingale** | Definitions for equality and reversed-inequality variants. Coercion lemmas to supermartingale. Submartingale expectation monotonicity (_E[M<sub>n</sub>] &le; E[M<sub>n+1</sub>]_), iterated bound (_E[M<sub>0</sub>] &le; E[M<sub>n</sub>]_), and Markov inequality. |
+| **Bundled filtration** | `filtration_pos` bundles a filtration with the cell-positivity hypothesis, with projection lemmas. |
+| **Partition-derived filtrations** | A refining partition sequence induces a valid filtration via `partition_equiv`. Downstream example: the discrete (singleton) partition produces a valid filtration. |
+| **Filtration-partition equivalence** | Equivalence classes of a filtration form a partition (cover, disjointness, non-emptiness). Partition-derived equivalence is reflexive, symmetric, transitive. Roundtrip: `partition_equiv (equiv_classes E) = E`. Filtration refinement implies partition refinement. A refining partition sequence induces a valid filtration via `partition_filtration`. |
 
 ### Concrete validation
 
@@ -181,15 +185,15 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 
 | File | Lines | Contents |
 |------|------:|----------|
-| `auditing_1.v` | ~1430 | Core definitions, algebraic degradation theory, heterogeneous risk limits, FCR/FWER, shared/simultaneous audits, conservative bounds |
-| `optimal_2.v` | ~250 | AM-GM inequality, optimal risk allocation, strict optimality, unique minimizer |
-| `dependent_3.v` | ~440 | Dependent audit model, Fr&eacute;chet bounds, Weierstrass product inequality, MACRO model, negative dependence witnesses |
-| `probability_4.v` | ~350 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal |
-| `overlap_5.v` | ~260 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring |
-| `ville_6.v` | ~770 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, filtration-partition equivalence |
-| `bravo_7.v` | ~585 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, degradation connection, multiplicative martingale step |
+| `auditing_1.v` | ~1560 | Core definitions, algebraic degradation theory, heterogeneous risk limits, FCR/FWER, shared/simultaneous audits, conservative bounds, quantitative sensitivity, exponential sandwich closed form |
+| `optimal_2.v` | ~270 | AM-GM inequality, optimal risk allocation, strict optimality, unique minimizer |
+| `dependent_3.v` | ~510 | Dependent audit model, Fr&eacute;chet bounds, Weierstrass product inequality, MACRO model, negative dependence witnesses, concrete bridge, `frechet_lower_strict` |
+| `probability_4.v` | ~390 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal, independence failure witness |
+| `overlap_5.v` | ~305 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring, surjective grouping |
+| `ville_6.v` | ~910 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, submartingale results, filtration-partition equivalence, `cond_exp_idempotent` |
+| `bravo_7.v` | ~670 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, degradation connection, multiplicative martingale step, cell positivity, cell mass boundary cases |
 | `continuity_8.v` | ~80 | Continuity and differentiability of false assurance (MathComp Analysis topology scope isolation) |
-| `concrete_9.v` | ~415 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, min_k extraction target |
+| `concrete_9.v` | ~510 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, `int_of_Z_mul`, `QR_add`/`QR_scale`, min_k extraction target |
 
 - `coq-auditing-verified.opam` &mdash; opam package metadata
 
