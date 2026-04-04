@@ -1384,6 +1384,145 @@ Qed.
 
 End GeneralBallot.
 
+(** ** Null-hypothesis (wrong-outcome) Ville bound *)
+
+(** The RLA risk bound requires Ville's inequality under the
+    wrong-outcome (null) hypothesis: H0 says the reported winner
+    did NOT truly win, modeled as the fair-coin distribution
+    [p = 1/2].  The reversed likelihood ratio
+    [T(b) = ballot_mu_alt(b) / ballot_mu_null(b)] is a martingale
+    under H0 and Ville gives [Pr(T >= 1/alpha | H0) <= alpha].
+    "Confirming the outcome" = [T >= 1/alpha], so this directly
+    bounds the probability of falsely certifying a wrong outcome.
+
+    The null model is an instance of [GeneralBallot] with
+    [C := bool], [mu0 := null_mu] (fair coin), [gen_lr := rev_lr]
+    (the reversed likelihood ratio). *)
+
+Section NullVille.
+
+Variable R : realType.
+Variable p_alt : R.
+Hypothesis Hp_gt_half : 2%:R^-1 < p_alt.
+Hypothesis Hp_lt1 : p_alt < 1.
+
+Definition null_mu (b : bool) : R := 2%:R^-1.
+
+Lemma null_mu_pos (b : bool) : 0 < null_mu b.
+Proof. by rewrite /null_mu invr_gt0 ltr0n. Qed.
+
+Lemma null_mu_sum1 : \sum_(b : bool) null_mu b = 1.
+Proof. by rewrite big_bool /null_mu -splitr. Qed.
+
+Definition rev_lr (b : bool) : R :=
+  ballot_mu p_alt b / null_mu b.
+
+Lemma rev_lr_ge0 (b : bool) : 0 <= rev_lr b.
+Proof.
+by rewrite /rev_lr; apply: divr_ge0; [exact: ballot_mu_ge0 | exact: ltW].
+Qed.
+
+Lemma rev_lr_exp1 : \sum_(b : bool) null_mu b * rev_lr b = 1.
+Proof.
+rewrite big_bool /rev_lr /=.
+rewrite !mulrCA !divff ?mulr1; last by rewrite gt_eqF // null_mu_pos.
+exact: ballot_mu_sum1.
+Qed.
+
+Variable N : nat.
+Hypothesis HN : (0 < N)%N.
+
+Definition null_prod_mu (f : {ffun 'I_N -> bool}) : R :=
+  @gen_prod_mu R _ null_mu N f.
+
+Definition null_F := @gen_F R _ N.
+
+Definition rev_M (n : nat) (f : {ffun 'I_N -> bool}) : R :=
+  @gen_M R _ rev_lr N n f.
+
+Lemma rev_M_supermartingale :
+  @supermartingale R _ null_prod_mu null_F rev_M.
+Proof.
+exact: (@gen_M_supermartingale R _ null_mu null_mu_pos null_mu_sum1
+  rev_lr rev_lr_ge0 rev_lr_exp1 N HN).
+Qed.
+
+Lemma rev_M_ge0 (n : nat) (f : {ffun 'I_N -> bool}) :
+  0 <= rev_M n f.
+Proof. by rewrite /rev_M; apply: prodr_ge0 => i _; exact: rev_lr_ge0. Qed.
+
+Lemma null_prod_mu_ge0 (f : {ffun 'I_N -> bool}) : 0 <= null_prod_mu f.
+Proof. by rewrite /null_prod_mu; apply: gen_prod_mu_ge0. Qed.
+
+Lemma null_filtration : @filtration _ null_F.
+Proof. exact: (@gen_filtration R _ N). Qed.
+
+Lemma null_F_cell_pos (n : nat) (x : {ffun 'I_N -> bool}) :
+  0 < \sum_(y | null_F n x y) null_prod_mu y.
+Proof. exact: (@gen_F_cell_pos R _ null_mu null_mu_pos N n x). Qed.
+
+Lemma rev_M_Exp0 : @Exp R _ null_prod_mu (rev_M 0) <= 1.
+Proof.
+exact: (@gen_M_Exp0 R _ null_mu null_mu_pos null_mu_sum1
+  rev_lr rev_lr_ge0 rev_lr_exp1 N).
+Qed.
+
+(** Ville's inequality under the null (wrong-outcome) measure:
+    [Pr_null(rev_M n >= 1/alpha) <= alpha].
+    This is [Pr(confirming wrong outcome | H0) <= alpha]. *)
+Lemma null_ville (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  @Pr R _ null_prod_mu (fun f => alpha^-1 <= rev_M n f) <= alpha.
+Proof.
+exact: (@gen_M_ville R _ null_mu null_mu_pos null_mu_sum1
+  rev_lr rev_lr_ge0 rev_lr_exp1 N HN alpha n).
+Qed.
+
+(** The per-contest false certification probability under the null is
+    at most [alpha]. *)
+Lemma bravo_pass_prob_bound (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  1 - @Pr R _ null_prod_mu (fun f => alpha^-1 <= rev_M n f)
+  >= 1 - alpha.
+Proof.
+move=> Ha0 Ha1; rewrite lerD2l lerN2.
+exact: null_ville Ha0 Ha1.
+Qed.
+
+End NullVille.
+
+(** ** Closed-form end-to-end degradation *)
+
+(** For [k] independent contests, each with per-contest Ville bound
+    [Pr(confirm wrong_i | H0) <= alpha_i], the false certification
+    probability for at least one wrong outcome surviving is bounded
+    by [false_assurance_hetero].  The bound is tight: it equals
+    [1 - prod(1 - alpha_i)] with equality. *)
+
+Section BRAVOEndToEnd.
+
+Variable R : realType.
+
+Lemma bravo_end_to_end (k : nat) (alphas : 'I_k -> R) :
+  (forall i, 0 < alphas i) ->
+  (forall i, alphas i < 1) ->
+  false_assurance_hetero alphas <=
+    1 - joint_pass (fun i => 1 - alphas i).
+Proof.
+move=> Ha0 Ha1; apply: degradation_from_per_contest.
+- by move=> i; apply/andP; split; [exact: ltW | exact: ltW].
+- move=> i; apply/andP; split.
+  + by rewrite subr_ge0; exact: ltW.
+  + by rewrite lerBlDr lerDl; exact: ltW.
+Qed.
+
+Lemma bravo_end_to_end_tight (k : nat) (alphas : 'I_k -> R) :
+  false_assurance_hetero alphas =
+    1 - joint_pass (fun i => 1 - alphas i).
+Proof. by rewrite /false_assurance_hetero /joint_pass. Qed.
+
+End BRAVOEndToEnd.
+
 (* --- Bibliography ---
 
    ballot_mu, lr, lr_expectation_1, lr_Exp_eq1, lr_win_lt1,
