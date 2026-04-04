@@ -97,6 +97,17 @@ field `R`:
 | **Partition-derived filtrations** | A refining partition sequence induces a valid filtration via `partition_equiv`. Downstream example: the discrete (singleton) partition produces a valid filtration. |
 | **Filtration-partition equivalence** | Equivalence classes of a filtration form a partition (cover, disjointness, non-emptiness). Partition-derived equivalence is reflexive, symmetric, transitive. Roundtrip: `partition_equiv (equiv_classes E) = E`. Filtration refinement implies partition refinement. A refining partition sequence induces a valid filtration via `partition_filtration`. |
 
+### BRAVO on the product ballot space
+
+| Result | Statement |
+|---|---|
+| **Cell mass factorization** | The sum of the product measure over a natural-filtration cell factors as the product of ballot measures at the fixed coordinates: _&sum;<sub>f&isin;cell(n)</sub> &mu;(f) = &prod;<sub>i&lt;n</sub> &mu;<sub>p</sub>(x<sub>i</sub>)_. Proved by induction via a coordinate-flip bijection (`flip_at`). |
+| **Cell mass coordinate restriction** | Restricting the cell sum to a specific value at the free coordinate _n_ gives _&mu;<sub>p</sub>(b) &middot; cell-mass_. |
+| **Conditional independence** | The conditional expectation of any function of a free coordinate given the natural filtration equals its unconditional expectation. In particular, _E[lr(f<sub>n</sub>) &mid; F<sub>n</sub>] = 1_. |
+| **Product likelihood ratio** | The time-varying process _M<sub>n</sub>(f) = &prod;<sub>i&lt;n</sub> lr(f<sub>i</sub>)_ is a non-negative supermartingale (in fact a martingale) under the product ballot measure and the natural filtration. |
+| **Per-contest Ville bound** | _Pr(M<sub>n</sub> &ge; 1/&alpha;) &le; &alpha;_ on the product ballot space, instantiating the abstract Ville machinery from `ville_6.v`. |
+| **Degradation connection** | The per-contest Ville bound feeds into `degradation_from_per_contest` to yield the joint false assurance bound for _k_ independent BRAVO tests. |
+
 ### Concrete validation
 
 | Result | Statement |
@@ -191,7 +202,7 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 | `probability_4.v` | ~390 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal, independence failure witness |
 | `overlap_5.v` | ~305 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring, surjective grouping |
 | `ville_6.v` | ~910 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, submartingale results, filtration-partition equivalence, `cond_exp_idempotent` |
-| `bravo_7.v` | ~670 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, degradation connection, multiplicative martingale step, cell positivity, cell mass boundary cases |
+| `bravo_7.v` | ~1040 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, cell mass factorization (`ballot_F_cell_mass`), conditional independence (`ballot_F_cond_exp_lr`), time-varying supermartingale (`ballot_M_supermartingale`), product-space Ville bound (`ballot_M_ville`), degradation connection (`bravo_degradation`), multiplicative martingale step |
 | `continuity_8.v` | ~80 | Continuity and differentiability of false assurance (MathComp Analysis topology scope isolation) |
 | `concrete_9.v` | ~510 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, `int_of_Z_mul`, `QR_add`/`QR_scale`, min_k extraction target |
 
