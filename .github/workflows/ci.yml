@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        coq_version: ["9.0"]
+        ocaml_version: ["4.14-flambda"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix workspace permissions for Docker
+        run: sudo chmod -R a+rwX "$GITHUB_WORKSPACE"
+
+      - uses: coq-community/docker-coq-action@v1
+        with:
+          coq_version: ${{ matrix.coq_version }}
+          ocaml_version: ${{ matrix.ocaml_version }}
+          install: |
+            startGroup "Install dependencies"
+              opam install coq-mathcomp-ssreflect coq-mathcomp-algebra coq-mathcomp-analysis coq-mathcomp-zify
+            endGroup
+          script: |
+            startGroup "Build"
+              make
+            endGroup

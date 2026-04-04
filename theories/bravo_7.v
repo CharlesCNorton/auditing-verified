@@ -721,6 +721,100 @@ apply: eq_bigl => i.
 by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
 Qed.
 
+(** The sum of [ballot_prod_mu] over the cell of [ballot_F n] restricted
+    to a specific value at coordinate [n] equals [ballot_mu p b] times
+    the cell mass.  Proved by complementation: the agree half is
+    [cell(n+1)] from [ballot_F_cell_mass_step], and the disagree half
+    is the remainder. *)
+Lemma ballot_F_cell_mass_coord (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> bool}) (b : bool) :
+  \sum_(f | ballot_F n x f && (f (Ordinal Hn) == b)) ballot_prod_mu f =
+  ballot_mu p b * \sum_(f | ballot_F n x f) ballot_prod_mu f.
+Proof.
+set j := Ordinal Hn.
+set C := \sum_(f | ballot_F n x f) ballot_prod_mu f.
+(* Split cell by f j *)
+have Hsplit : C =
+  \sum_(f | ballot_F n x f && (f j == x j)) ballot_prod_mu f +
+  \sum_(f | ballot_F n x f && (f j != x j)) ballot_prod_mu f
+  by rewrite -bigID.
+(* The agree half = cell(n+1) = ballot_mu(x j) * C *)
+have Hagree :
+  \sum_(f | ballot_F n x f && (f j == x j)) ballot_prod_mu f =
+  ballot_mu p (x j) * C.
+  have HH := ballot_F_cell_mass_step Hn x.
+  rewrite -/j in HH.
+  rewrite -/C -HH; apply: eq_bigl => f.
+  by rewrite (ballot_F_split Hn).
+(* The disagree half = ballot_mu(~~x j) * C by complement *)
+have Hdisagree :
+  \sum_(f | ballot_F n x f && (f j != x j)) ballot_prod_mu f =
+  ballot_mu p (~~ x j) * C.
+  have : C - ballot_mu p (x j) * C =
+    ballot_mu p (~~ x j) * C.
+    rewrite -mulrBl; congr (_ * C).
+    by case: (x j); rewrite /ballot_mu //= opprB addrCA subrr addr0.
+  by rewrite -Hagree -Hsplit addrK.
+(* Case split on b *)
+case Hb: (b == x j).
+- by move/eqP: Hb => ->; exact: Hagree.
+- have -> : b = ~~ x j by case: b (x j) Hb => [] [].
+  exact: Hdisagree.
+Qed.
+
+(** Conditional expectation of any function [g] applied to a free
+    coordinate [n_ord] given [ballot_F n] equals the unconditional
+    expectation [sum_b ballot_mu b * g b].  The product measure
+    structure makes free coordinates conditionally independent
+    of the fixed ones. *)
+Lemma ballot_F_cond_exp_free (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> bool}) (g : bool -> R) :
+  0 < \sum_(f | ballot_F n x f) ballot_prod_mu f ->
+  @cond_exp R _ ballot_prod_mu ballot_F
+    (fun f => g (f (Ordinal Hn))) n x =
+  \sum_(b : bool) ballot_mu p b * g b.
+Proof.
+move=> Hcell; rewrite /cond_exp.
+set j := Ordinal Hn.
+(* Numerator = sum_b [ballot_mu b * g b] * cell_mass *)
+have Hnum : \sum_(f | ballot_F n x f) ballot_prod_mu f * g (f j) =
+            (\sum_(b : bool) ballot_mu p b * g b) *
+            \sum_(f | ballot_F n x f) ballot_prod_mu f.
+  rewrite (bigID (fun f : {ffun _ -> _} => f j)) /=.
+  have Htrue : \sum_(f | ballot_F n x f && f j)
+    ballot_prod_mu f * g (f j) =
+    ballot_mu p true * g true *
+    \sum_(f | ballot_F n x f) ballot_prod_mu f.
+    under eq_bigr do rewrite [_ && f j]andbC => /andP [/eqP -> _].
+    rewrite -mulr_sumr -(ballot_F_cell_mass_coord Hn x true).
+    by apply: eq_bigl => f; rewrite [_ && f j]andbC.
+  have Hfalse : \sum_(f | ballot_F n x f && ~~ f j)
+    ballot_prod_mu f * g (f j) =
+    ballot_mu p false * g false *
+    \sum_(f | ballot_F n x f) ballot_prod_mu f.
+    under eq_bigr do rewrite [_ && ~~ f j]andbC => /andP [Hnf _].
+    have -> : forall f0, ~~ f0 j -> g (f0 j) = g false
+      by move=> f0; case: (f0 j).
+    rewrite -mulr_sumr -(ballot_F_cell_mass_coord Hn x false).
+    apply: eq_bigl => f; rewrite [_ && ~~ f j]andbC.
+    congr (_ && _); by case: (f j).
+  rewrite Htrue Hfalse big_bool /= -mulrDl.
+  done.
+rewrite Hnum mulrA mulfK //; last exact: gt_eqF.
+done.
+Qed.
+
+(** Conditional expectation of [lr] at a free coordinate equals 1. *)
+Lemma ballot_F_cond_exp_lr (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> bool}) :
+  0 < \sum_(f | ballot_F n x f) ballot_prod_mu f ->
+  @cond_exp R _ ballot_prod_mu ballot_F
+    (fun f => lr p (f (Ordinal Hn))) n x = 1.
+Proof.
+move=> Hcell; rewrite (ballot_F_cond_exp_free Hn x (lr p) Hcell).
+exact: lr_expectation_1.
+Qed.
+
 End BallotProductSpace.
 
 (** Generalized product-measure normalization: requires only [0 < p < 1],
