@@ -1153,6 +1153,45 @@ suff : false_assurance_hetero risks < false_assurance_hetero alphas.
 exact: (false_assurance_hetero_strict_mono Hr0 Ha1 Hle Hlt).
 Qed.
 
+(** Quantitative sensitivity: if contest [j]'s actual risk is at least
+    [epsilon] below its limit, the false assurance gap is at least
+    [epsilon * prod_{i != j} (1 - alphas_i)]. *)
+Lemma conservative_sensitivity (k : nat)
+    (alphas risks : 'I_k -> R) (j : 'I_k) (epsilon : R) :
+  (forall i, 0 <= risks i) ->
+  (forall i, alphas i <= 1) ->
+  (forall i, risks i <= alphas i) ->
+  0 < epsilon ->
+  risks j <= alphas j - epsilon ->
+  epsilon * \prod_(i < k | i != j) (1 - alphas i) <=
+    false_assurance_hetero alphas - false_assurance_hetero risks.
+Proof.
+move=> Hr0 Ha1 Hle He Hj.
+rewrite /false_assurance_hetero opprD opprK addrACA subrr add0r addrC.
+rewrite [in X in _ <= X](bigD1 j) //= [in X in _ <= _ - X](bigD1 j) //=.
+set Qa := \prod_(i < k | i != j) (1 - alphas i).
+set Qr := \prod_(i < k | i != j) (1 - risks i).
+have HQa0 : 0 <= Qa by apply: prodr_ge0 => i _; rewrite subr_ge0.
+have HQra : Qa <= Qr.
+  by apply: ler_prod => i _; apply/andP; split;
+     [rewrite subr_ge0 | rewrite lerD2l lerN2].
+have Hrj0 : 0 <= 1 - risks j.
+  by rewrite subr_ge0; exact: le_trans (Hle j) (Ha1 j).
+have Hgap : alphas j - risks j >= epsilon.
+  by rewrite lerBDr addrC -lerBDr.
+(* Step 1: epsilon * Qa <= (alphas_j - risks_j) * Qa *)
+apply: le_trans (_ : (alphas j - risks j) * Qa <= _).
+  by apply: ler_wpM2r.
+(* Step 2: (aj - rj) * Qa = ((1-rj) - (1-aj)) * Qa *)
+have -> : alphas j - risks j = (1 - risks j) - (1 - alphas j).
+  by rewrite opprD opprK addrACA subrr add0r addrC.
+(* Step 3: ((1-rj) - (1-aj)) * Qa <= (1-rj) * Qr - (1-aj) * Qa *)
+rewrite mulrBl.
+have Hstep3 : (1 - risks j) * Qa <= (1 - risks j) * Qr.
+  by apply: ler_wpM2l.
+by rewrite lerD2r.
+Qed.
+
 (** ** False certification rate (FCR) *)
 (* ---
    The right/wrong partition splits contests into those with correct
