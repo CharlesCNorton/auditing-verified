@@ -429,6 +429,18 @@ apply: (lt_le_trans (y := (1 - S) * (1 - a))).
 by apply: ler_wpM2r; [rewrite subr_ge0; exact: ltW |].
 Qed.
 
+(** The strict Weierstrass inequality with a [2 <= k] hypothesis,
+    avoiding the [k.+2]-indexed type in the statement. *)
+Lemma frechet_lower_strict (R : realType) (k : nat)
+    (alphas : 'I_k -> R) :
+  (2 <= k)%N ->
+  (forall i, 0 < alphas i) -> (forall i, alphas i < 1) ->
+  1 - \sum_(i < k) alphas i < \prod_(i < k) (1 - alphas i).
+Proof.
+case: k alphas => [|[|k]] // alphas _ Ha0 Ha1.
+exact: frechet_lower_strict_general.
+Qed.
+
 (* --- Bibliography ---
 
    frechet_upper_bound, frechet_lower_bound, frechet_sandwich,

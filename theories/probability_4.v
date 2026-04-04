@@ -347,6 +347,34 @@ rewrite -[X in _ < X]expr1.
 exact: pow_lt1_strict_anti H1t H1t1 Hk1.
 Qed.
 
+(** The two-point distribution does NOT satisfy [events_independent]
+    when [k >= 2] and [0 < t < 1]: the joint pass probability [1-t]
+    differs from the product of marginals [(1-t)^k]. *)
+Lemma two_pt_not_independent :
+  (1 < k)%N -> 0 < t -> t < 1 ->
+  ~ @events_independent R {ffun 'I_k -> bool}
+      (@two_pt_mu R k t) k
+      (fun (j : 'I_k) (f : {ffun 'I_k -> bool}) => f j).
+Proof.
+move=> Hk1 Ht0' Ht1'.
+rewrite /events_independent /Pr => Heq.
+have Hjoint : \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+  @two_pt_mu R k t f = 1 - t.
+  rewrite (bigD1 [ffun _ => true]) /=;
+    last by apply/forallP => j; rewrite ffunE.
+  rewrite /two_pt_mu eqxx big1 ?addr0 //.
+  move=> f /andP [/forallP Hall Hne]; rewrite (negbTE Hne).
+  case Hff: (f == [ffun _ => false]) => //.
+  by move/eqP: Hff => Hff; move: (Hall (Ordinal Hk)); rewrite Hff ffunE.
+have Hprod : \prod_(j < k) \sum_(f : {ffun 'I_k -> bool} | f j)
+  @two_pt_mu R k t f = (1 - t) ^+ k.
+  rewrite -iter_mulr_1 -big_const_ord; apply: eq_bigr => j _.
+  exact: two_pt_marginal.
+suff Habs : 1 - t = (1 - t) ^+ k.
+  by move/eqP: Habs; exact/negP/(two_pt_product_gap Hk1 Ht0' Ht1').
+by rewrite -Hprod -Hjoint.
+Qed.
+
 End TwoPointFrechet.
 
 (** ** Axiom audit for probability lemmas *)

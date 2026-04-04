@@ -45,6 +45,21 @@ Definition filtration (F : nat -> Omega -> Omega -> bool) :=
       (forall n, transitive (F n)) &
       (forall n x y, F n.+1 x y -> F n x y) ].
 
+(** [filtration_pos F]: a filtration with positive cell mass -- bundles
+    the cell-positivity hypothesis [Hcell] that many consumers need. *)
+Definition filtration_pos (F : nat -> Omega -> Omega -> bool) :=
+  filtration F /\ (forall k x, 0 < \sum_(y | F k x y) mu y).
+
+(** Extract the filtration from a [filtration_pos]. *)
+Lemma filtration_pos_filt (F : nat -> Omega -> Omega -> bool) :
+  filtration_pos F -> filtration F.
+Proof. by case. Qed.
+
+(** Extract the cell-positivity from a [filtration_pos]. *)
+Lemma filtration_pos_cell (F : nat -> Omega -> Omega -> bool) :
+  filtration_pos F -> forall k x, 0 < \sum_(y | F k x y) mu y.
+Proof. by case. Qed.
+
 (** [cond_exp F X n x]: conditional expectation of [X] given the partition
     cell of [F n] containing [x]. *)
 Definition cond_exp (F : nat -> Omega -> Omega -> bool)
@@ -110,6 +125,22 @@ have -> : \sum_(y | F n x y) mu y * X y =
           X x * \sum_(y | F n x y) mu y.
   by rewrite mulr_sumr; apply: eq_bigr => y Hy; rewrite Hmeas // mulrC.
 by rewrite mulfK ?gt_eqF.
+Qed.
+
+(** Conditional expectation is idempotent: [E[E[X|F_n] | F_n] = E[X|F_n]]. *)
+Lemma cond_exp_idempotent (F : nat -> Omega -> Omega -> bool)
+    (X : Omega -> R) (n : nat) (x : Omega) :
+  filtration F ->
+  0 < \sum_(y | F n x y) mu y ->
+  cond_exp F (cond_exp F X n) n x = cond_exp F X n x.
+Proof.
+move=> HF Hcell; apply: cond_exp_measurable => // y Hxy.
+have [_ Hsym Htrans _] := HF.
+have Hbigl : F n y =1 F n x.
+  move=> z; apply/idP/idP.
+  - by move=> Hyz; apply: (Htrans n y _ _ Hxy Hyz).
+  - by move=> Hxz; apply: (Htrans n x); [rewrite (Hsym n) |].
+by rewrite /cond_exp; congr (_ / _); apply: eq_bigl.
 Qed.
 
 (** Filtration monotonicity: if [m <= n] and [F n x y], then [F m x y]. *)

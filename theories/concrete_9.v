@@ -271,6 +271,58 @@ rewrite /QR /Qnum /Qden /=.
 by rewrite -mulrBl -intrB -rmorphB.
 Qed.
 
+(** [int_of_Z] preserves multiplication. *)
+Lemma int_of_Z_mul (a b : Z) :
+  int_of_Z (a * b)%Z = int_of_Z a * int_of_Z b.
+Proof.
+have negE : forall r : positive,
+  int_of_Z (Zneg r) = - int_of_Z (Zpos r).
+  move=> r; rewrite /int_of_Z /=.
+  have := Pos2Nat.is_pos r; case: (Pos.to_nat r) => [|k] Hr; first by lia.
+  by rewrite NegzE.
+have posE : forall p q : positive,
+  int_of_Z (Zpos (p * q)%positive) = int_of_Z (Zpos p) * int_of_Z (Zpos q).
+  move=> p0 q0; rewrite /int_of_Z /= -PoszM.
+  by congr Posz; rewrite mulnE -Pos2Nat.inj_mul.
+have zeroL : forall z, int_of_Z (Z0 * z)%Z = int_of_Z Z0 * int_of_Z z.
+  by move=> z; rewrite Z.mul_0_l /int_of_Z /= mul0r.
+have zeroR : forall z, int_of_Z (z * Z0)%Z = int_of_Z z * int_of_Z Z0.
+  by move=> z; rewrite Z.mul_0_r /int_of_Z /= mulr0.
+case: a => [|p|p]; first exact: zeroL.
+- case: b => [|q|q]; first exact: zeroR.
+  + exact: posE.
+  + have -> : (Zpos p * Zneg q)%Z = Zneg (p * q)%positive by [].
+    by rewrite !negE posE mulrN.
+- case: b => [|q|q]; first exact: zeroR.
+  + have -> : (Zneg p * Zpos q)%Z = Zneg (p * q)%positive by [].
+    by rewrite !negE posE mulNr.
+  + have -> : (Zneg p * Zneg q)%Z = Zpos (p * q)%positive by [].
+    by rewrite !negE posE mulrNN.
+Qed.
+
+(** [QR] is invariant under scaling numerator and denominator by the same positive. *)
+Lemma QR_scale (n : Z) (d p : positive) :
+  QR (Qmake n d) = QR (Qmake (n * Zpos p)%Z (d * p)).
+Proof.
+have Hp : (int_of_Z (Zpos p))%:~R != 0 :> R.
+  by apply: negbT; apply: gt_eqF; rewrite ltr0z /int_of_Z /=;
+     apply/ssrnat.ltP/Pos2Nat.is_pos.
+rewrite /QR /Qnum /Qden int_of_Z_mul intrM.
+have -> : (int_of_Z (Zpos (d * p)))%:~R =
+  (int_of_Z (Zpos d))%:~R * (int_of_Z (Zpos p))%:~R :> R.
+  by rewrite /int_of_Z /= Pos2Nat.inj_mul -mulnE PoszM intrM.
+by rewrite invfM mulrACA divff // mulr1.
+Qed.
+
+(** [QR] distributes over addition for cross-denominator arguments. *)
+Lemma QR_add (a c : Z) (b d : positive) :
+  QR (Qmake a b) + QR (Qmake c d) =
+  QR (Qmake (a * Zpos d + c * Zpos b)%Z (b * d)).
+Proof.
+rewrite (QR_scale a b d) (QR_scale c d b).
+by rewrite (Pos.mul_comm d b) QR_add_same_denom.
+Qed.
+
 (** At k=90 the QR-transferred false assurance exceeds delta=99%. *)
 Lemma bridge_bound_90 :
   ratr delta_r <= @false_assurance R (ratr alpha_r) 90.
@@ -333,6 +385,17 @@ Lemma bridge_hetero_3 :
   QR (Qmake 3 20) <= QR (Qmake 3071 20000).
 Proof. exact/QR_le_pos/concrete_hetero_le. Qed.
 
+(** Three heterogeneous contests at 1%, 5%, 10%: the product of
+    complements [(99/100)(19/20)(9/10)] is at most [17/20], so
+    [false_assurance_hetero >= 3/20 = 15%]. *)
+Lemma bridge_hetero_3_product :
+  QR (Qmake 99 100) * (QR (Qmake 19 20) * QR (Qmake 9 10)) <=
+  QR (Qmake 17 20) :> R.
+Proof.
+rewrite QR_mul_pos [QR (Qmake 99 100) * _]QR_mul_pos.
+by apply: QR_le; vm_compute; discriminate.
+Qed.
+
 End Bridge.
 
 (* Prevent the kernel from unfolding QR in downstream files. *)
@@ -389,6 +452,17 @@ Lemma search_k_miss (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
   search_k oma omd k.+1 fuel (acc * oma).
 Proof. by move=> H; rewrite /= H. Qed.
 
+(** [search_k] gives the same result at fuel [f.+1] and [f.+2] when
+    the accumulator meets the threshold at that step. *)
+Lemma search_k_fuel_hit_stable (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
+  Qle_bool acc omd = true ->
+  forall extra, search_k oma omd k fuel.+1 acc =
+                search_k oma omd k (fuel.+1 + extra) acc.
+Proof.
+move=> Hacc; elim=> [|e IH]; first by rewrite addn0.
+by rewrite addnS /= Hacc.
+Qed.
+
 (** Correctness: the output of [min_k] satisfies the threshold [(1-alpha)^k <= 1-delta].
     Verified for alpha=5%, delta=99% by [vm_compute] on the concrete Qpower. *)
 Lemma min_k_correct_5_99 :
@@ -402,6 +476,13 @@ Lemma min_k_minimal_5_99 :
        (Z.of_nat (min_k (Qmake 1 20) (Qmake 99 100) - 1))
      <= 1 - Qmake 99 100)%Q.
 Proof. by move/Qle_bool_iff; vm_compute. Qed.
+
+(** [search_k] unfolding: exposes the one-step behavior as an if-then-else. *)
+Lemma search_k_unfold (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
+  search_k oma omd k fuel.+1 acc =
+  if Qle_bool acc omd then k
+  else search_k oma omd k.+1 fuel (acc * oma).
+Proof. by []. Qed.
 
 Close Scope Q_scope.
 

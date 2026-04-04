@@ -209,6 +209,32 @@ apply/existsP; exists (grouping i1).
 by rewrite (svalP (Hpick i1)) Heq (svalP (Hpick i2)).
 Qed.
 
+(** The grouping from [complement_chromatic_le_styles] is surjective
+    when a right inverse for [covers] exists: every ballot style has a
+    dedicated contest that is covered only by that style. *)
+Lemma complement_chromatic_surj
+    (rep : 'I_n -> 'I_k) :
+  (forall j : 'I_n, covers j (rep j)) ->
+  (forall j : 'I_n, forall j' : 'I_n, covers j' (rep j) -> j' = j) ->
+  exists grouping : 'I_k -> 'I_n,
+    (forall i1 i2 : 'I_k,
+      grouping i1 = grouping i2 -> contests_overlap i1 i2) /\
+    (forall j : 'I_n, grouping (rep j) = j).
+Proof.
+move=> Hrep Huniq.
+have Hpick : forall i : 'I_k, {j : 'I_n | covers j i}.
+  move=> i; case: (pickP (fun j : 'I_n => covers j i)) => [j Hj|Hnone].
+  - by exists j.
+  - exfalso; have [j Hj] := full_cov i; by have := Hnone j; rewrite Hj.
+pose grouping i := sval (Hpick i).
+exists grouping; split.
+- move=> i1 i2 Heq.
+  apply/existsP; exists (grouping i1).
+  by rewrite (svalP (Hpick i1)) Heq (svalP (Hpick i2)).
+- move=> j; rewrite /grouping.
+  by apply: Huniq; exact: (svalP (Hpick (rep j))).
+Qed.
+
 (** Full overlap pipeline: given full coverage by [n] ballot styles and
     the assumption that every style covers at least one contest (surjectivity
     of the grouping), the heterogeneous false assurance over [n] style-level
@@ -231,6 +257,21 @@ Proof.
 move=> Hsurj Hcompat Halpha.
 exact: shared_audit_bound_surj Hsurj Halpha.
 Qed.
+
+(** Direct overlap bound: given full coverage, a surjective style
+    assignment, and the compatibility condition, produce the heterogeneous
+    overlap bound in one step. *)
+Lemma overlap_direct_bound
+    (alphas : 'I_k -> R)
+    (assign : 'I_k -> 'I_n) :
+  (forall j : 'I_n, exists i : 'I_k, assign i = j) ->
+  (forall i1 i2 : 'I_k, assign i1 = assign i2 -> contests_overlap i1 i2) ->
+  (forall i, 0 <= alphas i <= 1) ->
+  exists witness : 'I_n -> 'I_k,
+    injective witness /\
+    false_assurance_hetero (fun j => alphas (witness j)) <=
+      false_assurance_hetero alphas.
+Proof. exact: overlap_hetero_pipeline. Qed.
 
 End BallotOverlap.
 

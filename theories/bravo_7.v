@@ -373,6 +373,35 @@ Qed.
 
 End ProductMartingale.
 
+(** ** Product likelihood ratio: initial expectation bound (refactored) *)
+
+Section ProductLRExp0.
+
+Variable R : realType.
+Variable p : R.
+Hypothesis Hp : 2%:R^-1 < p.
+Hypothesis Hp1 : p < 1.
+Variable Omega : finType.
+Variable mu : Omega -> R.
+Hypothesis mu_ge0 : forall x, 0 <= mu x.
+Hypothesis mu_sum1 : \sum_x mu x = 1.
+Variable outcome : Omega -> nat -> bool.
+
+(** Initial expectation of the product likelihood ratio is at most 1,
+    given that [product_lr] starts at 1 for every sample point. *)
+Lemma product_lr_Exp0_le1' :
+  (forall x, product_lr p (outcome x) 0 = 1) ->
+  @Exp R _ mu (fun x => product_lr p (outcome x) 0) <= 1.
+Proof.
+move=> H0.
+have -> : (fun x => product_lr p (outcome x) 0) = (fun _ => (1 : R)).
+  by apply: boolp.funext => x; rewrite H0.
+rewrite /Exp (eq_bigr (fun x => mu x)); last by move=> x _; rewrite mulr1.
+by rewrite mu_sum1.
+Qed.
+
+End ProductLRExp0.
+
 (** ** Product-space martingale *)
 
 Section BallotProductSpace.
@@ -437,6 +466,25 @@ by split; [exact: ballot_F_refl | exact: ballot_F_sym |
            exact: ballot_F_trans | exact: ballot_F_refine].
 Qed.
 
+(** The product measure is strictly positive on every element. *)
+Lemma ballot_prod_mu_pos (f : {ffun 'I_N -> bool}) :
+  0 < ballot_prod_mu f.
+Proof.
+apply: prodr_gt0 => i _; rewrite /ballot_mu.
+by case: (f i); [exact: p_pos Hp | exact: q_pos Hp1].
+Qed.
+
+(** Cell-positivity for the natural filtration: every cell has positive
+    total mass. *)
+Lemma ballot_F_cell_pos :
+  forall n (x : {ffun 'I_N -> bool}),
+    0 < \sum_(y | ballot_F n x y) ballot_prod_mu y.
+Proof.
+move=> n x; rewrite (bigD1 x); last exact: ballot_F_refl.
+apply: ltr_pwDl; first exact: ballot_prod_mu_pos.
+by apply: sumr_ge0 => y _; exact: ballot_prod_mu_ge0.
+Qed.
+
 (** [ballot_plr n f]: the product likelihood ratio at step [n]
     computed directly from a finite ballot sequence [{ffun 'I_N -> bool}].
     Requires [n <= N]. *)
@@ -472,6 +520,27 @@ have <- : \prod_(i < N) \sum_(b : bool) ballot_mu p b =
   exact: bigA_distr_bigA.
 have Hmu1 : \sum_(b : bool) ballot_mu p b = 1 by exact: ballot_mu_sum1.
 by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: Hmu1.
+Qed.
+
+(** At step [0], every function is in the cell: sum = 1 = empty product. *)
+Lemma ballot_F_cell_mass_0 (x : {ffun 'I_N -> bool}) :
+  \sum_(f : {ffun 'I_N -> bool} | ballot_F 0 x f) ballot_prod_mu f = 1.
+Proof.
+have -> : \sum_(f | ballot_F 0 x f) ballot_prod_mu f =
+          \sum_f ballot_prod_mu f.
+  by apply: eq_bigl => f; apply/forallP => i; rewrite ltn0.
+exact: ballot_prod_mu_sum1.
+Qed.
+
+(** At step [N], the cell contains only [x] itself. *)
+Lemma ballot_F_cell_mass_N (x : {ffun 'I_N -> bool}) :
+  \sum_(f : {ffun 'I_N -> bool} | ballot_F N x f) ballot_prod_mu f =
+  ballot_prod_mu x.
+Proof.
+rewrite (big_pred1 x) // => f; apply/idP/idP.
+- move/forallP => Hfx; apply/eqP/ffunP => i.
+  by move/implyP: (Hfx i) => /(_ (ltn_ord i)) /eqP.
+- by move/eqP => ->; exact: ballot_F_refl.
 Qed.
 
 End BallotProductSpace.
