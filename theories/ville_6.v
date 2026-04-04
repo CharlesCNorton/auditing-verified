@@ -638,6 +638,49 @@ exact: le_trans (@markov_ineq (stopped_value M (hitting_time M c N)) _ Hc Hsv_ge
                  (optional_stopping HF Hsup Hstop Hcell Hbound).
 Qed.
 
+(** ** Submartingale results *)
+
+(** A submartingale has non-decreasing expected value at each step. *)
+Lemma submartingale_Exp_mono (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  filtration F ->
+  submartingale F M ->
+  (forall x, 0 < \sum_(y | F n x y) mu y) ->
+  Exp (M n) <= Exp (M n.+1).
+Proof.
+move=> HF [Hadapt Hsub] Hcell.
+apply: (le_trans (y := Exp (cond_exp F (M n.+1) n))).
+  rewrite /Exp; apply: ler_sum => x _.
+  by apply: ler_wpM2l; [exact: mu_ge0 | exact: Hsub].
+by rewrite tower_property.
+Qed.
+
+(** A submartingale's expected value at any time [n] is bounded below by its
+    initial expected value. *)
+Lemma submartingale_Exp_ge0 (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  filtration F ->
+  submartingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  Exp (M 0) <= Exp (M n).
+Proof.
+move=> HF Hsub Hcell; elim: n => [|n IH]; first exact: lexx.
+apply: (le_trans IH).
+exact: (@submartingale_Exp_mono F M n HF Hsub (Hcell n)).
+Qed.
+
+(** Markov bound for submartingales: [c * Pr(M_n >= c) <= E[M_n]]. *)
+Lemma submartingale_markov (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (c : R) (n : nat) :
+  submartingale F M ->
+  (forall k x, 0 <= M k x) ->
+  0 < c ->
+  c * @Pr R _ mu (fun x => c <= M n x) <= Exp (M n).
+Proof.
+move=> Hsub Hge0 Hc.
+exact: (@markov_ineq (M n) _ Hc (Hge0 n)).
+Qed.
+
 End DiscreteVille.
 
 (* Prevent the kernel from unfolding intermediate definitions in
