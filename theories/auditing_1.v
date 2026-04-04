@@ -286,6 +286,30 @@ by rewrite mul1r /b /a.
 Qed.
 
 (** Algebraic identity: [k*alpha/(1-alpha) - k*alpha = k*alpha^2/(1-alpha)]. *)
+Lemma exp_sandwich_gap_identity (alpha : R) (k : nat) :
+  0 < alpha -> alpha < 1 ->
+  k%:R * alpha / (1 - alpha) - k%:R * alpha =
+  k%:R * alpha ^+ 2 / (1 - alpha).
+Proof.
+move=> Ha0 Ha1.
+have H1a_ne : 1 - alpha != 0 by rewrite gt_eqF // subr_gt0.
+apply: (mulIf H1a_ne); rewrite mulrBl !divfK //.
+rewrite -{1}[k%:R * alpha]mulr1 -mulrBr.
+by rewrite opprB addrCA subrr addr0 expr2 -mulrA.
+Qed.
+
+(** The exponential sandwich gap is at most [k*alpha^2/(1-alpha)],
+    the closed-form version of [exp_sandwich_gap]. *)
+Lemma exp_sandwich_gap_closed (alpha : R) (k : nat) :
+  0 < alpha -> alpha < 1 ->
+  (1 - expR (- (k%:R * alpha / (1 - alpha)))) -
+  (1 - expR (- (k%:R * alpha))) <=
+  k%:R * alpha ^+ 2 / (1 - alpha).
+Proof.
+move=> Ha0 Ha1; rewrite -exp_sandwich_gap_identity //.
+exact: exp_sandwich_gap.
+Qed.
+
 (** Powers of [x] in [0,1] are anti-monotone: [x^n <= x^m] when [m <= n]. *)
 Lemma pow_le1_anti (x : R) (m n : nat) :
   0 <= x -> x <= 1 -> (m <= n)%N -> x ^+ n <= x ^+ m.
