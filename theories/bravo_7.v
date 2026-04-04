@@ -564,6 +564,163 @@ apply/idP/andP.
   + by move: (forallP Hn_cell i); rewrite Hi.
 Qed.
 
+(** ** Cell mass factorization *)
+
+(** [flip_at j f]: flip coordinate [j] of [f], leaving all others unchanged.
+    Used to establish the bijection between the "agree" and "disagree"
+    halves of a filtration cell when splitting by a free coordinate. *)
+Definition flip_at (j : 'I_N) (f : {ffun 'I_N -> bool}) : {ffun 'I_N -> bool} :=
+  [ffun i => if i == j then ~~ f i else f i].
+
+(** [flip_at] is an involution. *)
+Lemma flip_at_invol (j : 'I_N) : involutive (flip_at j).
+Proof.
+by move=> f; apply/ffunP => i; rewrite !ffunE; case: eqP => //= _; rewrite negbK.
+Qed.
+
+(** [flip_at] is injective. *)
+Lemma flip_at_inj (j : 'I_N) : injective (flip_at j).
+Proof. exact: inv_inj (flip_at_invol j). Qed.
+
+(** [flip_at] preserves coordinates other than [j]. *)
+Lemma flip_at_ne (j : 'I_N) (f : {ffun 'I_N -> bool}) (i : 'I_N) :
+  i != j -> (flip_at j f) i = f i.
+Proof. by rewrite ffunE => /negbTE ->. Qed.
+
+(** [flip_at] negates coordinate [j]. *)
+Lemma flip_at_eq (j : 'I_N) (f : {ffun 'I_N -> bool}) :
+  (flip_at j f) j = ~~ f j.
+Proof. by rewrite ffunE eqxx. Qed.
+
+(** [flip_at] preserves the [ballot_F n] equivalence class when [n <= j]:
+    flipping a free coordinate does not affect the first [n] positions. *)
+Lemma flip_at_ballot_F (n : nat) (j : 'I_N) (x f : {ffun 'I_N -> bool}) :
+  (n <= j)%N -> ballot_F n x f -> ballot_F n x (flip_at j f).
+Proof.
+move=> Hnj /forallP Hxf; apply/forallP => i; apply/implyP => Hi.
+have Hij : i != j.
+  by apply: contraTN Hi => /eqP ->; rewrite -leqNgt.
+by rewrite flip_at_ne //; exact: implyP (Hxf i) Hi.
+Qed.
+
+(** [flip_at] preserves the [ballot_F n] cell as a boolean identity. *)
+Lemma flip_at_ballot_F_id (n : nat) (j : 'I_N) (x f : {ffun 'I_N -> bool}) :
+  (n <= j)%N -> ballot_F n x (flip_at j f) = ballot_F n x f.
+Proof.
+move=> Hnj; apply/forallP/forallP => /= H i;
+  have /implyP Hi := H i; apply/implyP => Hin;
+  have Hij : i != j by [apply: contraTN Hin => /eqP ->; rewrite -leqNgt];
+  move: (Hi Hin); by rewrite flip_at_ne.
+Qed.
+
+(** The reduced product (excluding coordinate [j]) is preserved by [flip_at j]. *)
+Lemma flip_at_reduced_prod (j : 'I_N) (f : {ffun 'I_N -> bool}) :
+  \prod_(i < N | i != j) ballot_mu p ((flip_at j f) i) =
+  \prod_(i < N | i != j) ballot_mu p (f i).
+Proof.
+by apply: eq_bigr => i Hij; rewrite flip_at_ne.
+Qed.
+
+(* Prevent kernel unfolding of flip_at infrastructure. *)
+Strategy 100 [flip_at].
+
+(** Cell mass recurrence: the [n+1]-cell mass is the [n]-cell mass
+    times the ballot measure at coordinate [n].
+
+    The proof splits the [n]-cell by the value at coordinate [n]
+    (which is free in the [n]-cell), factors out the ballot measure
+    from each half, and uses [flip_at] to equate the reduced-product
+    sums over the "agree" and "disagree" halves.  The two ballot
+    measures sum to 1, collapsing the [n]-cell mass to the
+    reduced-product sum, which then recombines with the [n+1]-cell. *)
+Lemma ballot_F_cell_mass_step (n : nat) (Hn : (n < N)%N)
+    (x : {ffun 'I_N -> bool}) :
+  \sum_(f | ballot_F n.+1 x f) ballot_prod_mu f =
+  ballot_mu p (x (Ordinal Hn)) *
+  \sum_(f | ballot_F n x f) ballot_prod_mu f.
+Proof.
+set j := Ordinal Hn.
+(* Reduced product: ballot_prod_mu without coordinate j *)
+set rprod := fun f : {ffun 'I_N -> bool} =>
+  \prod_(i < N | i != j) ballot_mu p (f i).
+(* S := reduced-product sum over cell(n+1) *)
+set S := \sum_(f | ballot_F n.+1 x f) rprod f.
+(* Step A: cell(n+1) = ballot_mu(x j) * S *)
+have HA : \sum_(f | ballot_F n.+1 x f) ballot_prod_mu f =
+          ballot_mu p (x j) * S.
+  rewrite /S mulr_sumr; apply: eq_bigr => f Hf.
+  rewrite /ballot_prod_mu (bigD1 j) //=; congr (_ * _).
+  by move: Hf; rewrite (ballot_F_split Hn) => /andP [_ /eqP ->].
+(* Step B: cell(n) = S *)
+suff HB : \sum_(f | ballot_F n x f) ballot_prod_mu f = S
+  by rewrite HA HB.
+(* Split cell(n) by f(j) using bigID *)
+rewrite (bigID (fun f : {ffun _ -> _} => f j == x j)) /=.
+(* Factor ballot_prod_mu in each half *)
+have Hfactor : forall f : {ffun 'I_N -> bool},
+  ballot_prod_mu f = ballot_mu p (f j) * rprod f.
+  by move=> f; rewrite /ballot_prod_mu (bigD1 j).
+(* Agree half: ballot_F n x f && f(j) == x(j)  is  cell(n+1) *)
+have Hagree :
+  \sum_(f | ballot_F n x f && (f j == x j)) ballot_prod_mu f =
+  ballot_mu p (x j) * S.
+  transitivity (\sum_(f | ballot_F n.+1 x f) ballot_prod_mu f).
+    by apply: eq_bigl => f; rewrite (ballot_F_split Hn).
+  exact: HA.
+(* Disagree rprod-sum = S via flip_at reindex *)
+have Hflip_rprod :
+  \sum_(f | ballot_F n x f && (f j != x j)) rprod f = S.
+  rewrite /S; symmetry.
+  have Hinj : injective (flip_at j).
+    by move=> a b /(congr1 (flip_at j)); rewrite !flip_at_invol.
+  rewrite (reindex_inj Hinj).
+  apply: eq_big => f.
+  - (* Predicate: ballot_F n.+1 x (flip f) = ballot_F n x f && f(j) != x(j) *)
+    rewrite (ballot_F_split Hn) flip_at_eq
+            (@flip_at_ballot_F_id _ j _ _ (leqnn _)).
+    by congr (_ && _); case: (f j); case: (x j).
+  - (* Body: rprod(flip f) = rprod(f) *)
+    by move=> _; exact: flip_at_reduced_prod.
+(* Disagree half = ballot_mu(~~x j) * S *)
+have Hdisagree :
+  \sum_(f | ballot_F n x f && (f j != x j)) ballot_prod_mu f =
+  ballot_mu p (~~ x j) * S.
+  rewrite -Hflip_rprod mulr_sumr.
+  apply: eq_bigr => f /andP [_ Hne].
+  rewrite Hfactor; congr (ballot_mu p _ * _).
+  by case: (f j) (x j) Hne => [] [].
+(* Combine: cell(n) = (ballot_mu(x j) + ballot_mu(~~x j)) * S = S *)
+rewrite Hagree Hdisagree -mulrDl.
+suff -> : ballot_mu p (x j) + ballot_mu p (~~ x j) = 1 by rewrite mul1r.
+by case: (x j); rewrite /ballot_mu /= ?addrC subrK.
+Qed.
+
+(** General cell mass formula: the sum of [ballot_prod_mu] over the
+    [ballot_F n] cell of [x] equals the product of ballot measures
+    at the first [n] coordinates of [x].
+
+    At [n = 0] the product is empty (= 1) and the cell is the full space.
+    At [n = N] every coordinate is fixed and the cell is the singleton [{x}].
+    The general case follows by forward induction on [n] using the
+    recurrence [ballot_F_cell_mass_step]. *)
+Lemma ballot_F_cell_mass (n : nat) (Hn : (n <= N)%N)
+    (x : {ffun 'I_N -> bool}) :
+  \sum_(f : {ffun 'I_N -> bool} | ballot_F n x f) ballot_prod_mu f =
+  \prod_(i < N | (i < n)%N) ballot_mu p (x i).
+Proof.
+elim: n Hn => [|n IH] Hn.
+  rewrite big_pred0; last by move=> i; rewrite ltn0.
+  exact: ballot_F_cell_mass_0.
+have Hn' : (n < N)%N := Hn.
+rewrite (ballot_F_cell_mass_step Hn') (IH (ltnW Hn)).
+set j := Ordinal Hn'.
+rewrite (bigD1 j) /=; last by [].
+congr (ballot_mu p (x j) * _).
+apply: eq_bigl => i.
+(* Goal: (i < n.+1)%N && (i != j) = (i < n)%N *)
+by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
+Qed.
+
 End BallotProductSpace.
 
 (** Generalized product-measure normalization: requires only [0 < p < 1],
