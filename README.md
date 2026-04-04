@@ -22,6 +22,13 @@ measure-theoretic version. Priority claims are based on a survey of
 Lean/Mathlib, the Isabelle AFP, and the Coq/Rocq opam registry as of
 March 2026.
 
+The formalization includes a complete end-to-end chain from the
+null-hypothesis (wrong-outcome) product measure through the reversed
+likelihood ratio martingale, Ville's inequality, per-contest risk
+bounds, and the multiplicative degradation formula. A general ballot
+model parametric in an arbitrary finite candidate type extends the
+binary (BRAVO) results to multi-candidate contests.
+
 The proofs are carried out over MathComp's `realType` using MathComp
 Analysis for logarithms and real exponentiation, with no axioms beyond
 the MathComp foundation and no admitted proofs.
@@ -106,7 +113,17 @@ field `R`:
 | **Conditional independence** | The conditional expectation of any function of a free coordinate given the natural filtration equals its unconditional expectation. In particular, _E[lr(f<sub>n</sub>) &mid; F<sub>n</sub>] = 1_. |
 | **Product likelihood ratio** | The time-varying process _M<sub>n</sub>(f) = &prod;<sub>i&lt;n</sub> lr(f<sub>i</sub>)_ is a non-negative supermartingale (in fact a martingale) under the product ballot measure and the natural filtration. |
 | **Per-contest Ville bound** | _Pr(M<sub>n</sub> &ge; 1/&alpha;) &le; &alpha;_ on the product ballot space, instantiating the abstract Ville machinery from `ville_6.v`. |
-| **Degradation connection** | The per-contest Ville bound feeds into `degradation_from_per_contest` to yield the joint false assurance bound for _k_ independent BRAVO tests. |
+| **Null-hypothesis Ville bound** | Under the wrong-outcome (null) measure (fair coin, _p = 1/2_), the reversed likelihood ratio _T(b) = P(b &mid; alt) / P(b &mid; null)_ is a martingale. Ville gives _Pr<sub>null</sub>(T<sub>n</sub> &ge; 1/&alpha;) &le; &alpha;_ = _Pr(confirming wrong outcome) &le; &alpha;_. |
+| **End-to-end degradation** | The null-hypothesis Ville bound feeds per-contest risk bounds into `degradation_from_per_contest`, yielding _F<sub>hetero</sub> = 1 &minus; &prod;(1 &minus; &alpha;<sub>i</sub>)_ with proved equality (tight bound). |
+
+### General ballot model (multi-candidate)
+
+| Result | Statement |
+|---|---|
+| **Swap bijection** | `swap_at` generalizes `flip_at` from `bool` to an arbitrary `finType`: swaps two values at a given coordinate, preserving the filtration cell and the reduced product. Involution and injectivity proved. |
+| **General cell mass** | The cell mass factorization, coordinate restriction, and conditional independence generalize from `bool` to any `finType` with a positive probability distribution summing to 1. |
+| **General supermartingale** | For any finite candidate type _C_, distribution _&mu;<sub>0</sub>_, and likelihood ratio _lr_ with _E[lr] = 1_, the time-varying product _M<sub>n</sub>_ is a supermartingale under the product measure and natural filtration. |
+| **General Ville bound** | _Pr(M<sub>n</sub> &ge; 1/&alpha;) &le; &alpha;_ for the general ballot model, extending the binary BRAVO bound to multi-candidate (plurality, IRV, etc.) contests. |
 
 ### Concrete validation
 
@@ -140,10 +157,13 @@ any single contest escalates, eliminate the multiplicity problem entirely.
 The supermartingale foundation (Ville's inequality) ensures these bounds
 hold for any sequential audit method&mdash;including BRAVO, ALPHA, and
 other martingale-based tests&mdash;at any data-dependent stopping time,
-not just fixed sample sizes. The per-contest risk bound is justified by
-the supermartingale's expectation monotonicity and Markov's inequality,
-giving a complete probabilistic chain from test construction to
-degradation conclusion.
+not just fixed sample sizes. The formalization includes a complete
+machine-checked chain from the null-hypothesis (wrong-outcome) product
+measure through the reversed likelihood ratio, Ville's inequality under
+the null, per-contest risk bounds, and the multiplicative degradation
+formula, with the final bound proved tight (equality). A general ballot
+model extends these results from binary ballots to arbitrary finite
+candidate types.
 
 ## Axiom footprint
 
@@ -202,7 +222,7 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 | `probability_4.v` | ~390 | Finite probability space (Pr axioms, subadditivity, independence), two-point distribution, Fr&eacute;chet-Hoeffding extremal, independence failure witness |
 | `overlap_5.v` | ~305 | Ballot overlap bounds, chromatic number, heterogeneous overlap, complement coloring, surjective grouping |
 | `ville_6.v` | ~910 | Discrete supermartingale theory, tower property, Ville's inequality, optional stopping, Doob's maximal inequality, submartingale results, filtration-partition equivalence, `cond_exp_idempotent` |
-| `bravo_7.v` | ~1040 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, cell mass factorization (`ballot_F_cell_mass`), conditional independence (`ballot_F_cond_exp_lr`), time-varying supermartingale (`ballot_M_supermartingale`), product-space Ville bound (`ballot_M_ville`), degradation connection (`bravo_degradation`), multiplicative martingale step |
+| `bravo_7.v` | ~1560 | BRAVO ballot-polling audit, likelihood ratio martingale, product-space measure, cell mass factorization (`ballot_F_cell_mass`), conditional independence (`ballot_F_cond_exp_lr`), time-varying supermartingale (`ballot_M_supermartingale`), Ville bound (`ballot_M_ville`), null-hypothesis reversed Ville (`null_ville`), end-to-end degradation (`bravo_end_to_end`), general ballot model for arbitrary `finType` (`gen_M_ville`), multiplicative martingale step |
 | `continuity_8.v` | ~80 | Continuity and differentiability of false assurance (MathComp Analysis topology scope isolation) |
 | `concrete_9.v` | ~510 | Concrete validation in Stdlib Q, Maricopa County 2024 instantiation, Q-to-R transfer via QR injection, `int_of_Z_mul`, `QR_add`/`QR_scale`, min_k extraction target |
 
