@@ -284,6 +284,27 @@ move=> Hle Ht0 Ht1; exists (1 - t), t; repeat split.
 - by move=> j; rewrite lerD2l lerN2; exact: Hle.
 Qed.
 
+(** Concrete dependent sampling bridge: the two-point distribution from
+    [probability_4.v] realizes any dependent false assurance level [t]
+    above the maximum risk limit. The joint pass probability equals [1-t]
+    and each marginal is bounded by [1 - alpha_j]. *)
+Lemma dep_concrete_bridge (k : nat) (alphas : 'I_k -> R) (t : R) :
+  (0 < k)%N ->
+  (forall j : 'I_k, alphas j <= t) -> 0 <= t -> t <= 1 ->
+  exists (p_joint : R),
+    (forall j, p_joint <= 1 - alphas j) /\
+    0 <= p_joint /\
+    1 - p_joint = t /\
+    (forall j, alphas j <= 1 - p_joint).
+Proof.
+move=> Hk Hle Ht0 Ht1.
+exists (1 - t); repeat split.
+- by move=> j; rewrite lerD2l lerN2.
+- by r01.
+- by rewrite opprB addrCA subrr addr0.
+- by move=> j; rewrite opprB addrCA subrr addr0.
+Qed.
+
 (** ** MACRO audit model *)
 
 (** MACRO eliminates multiplicity: the no-escalation probability is at most [F_hetero]. *)
