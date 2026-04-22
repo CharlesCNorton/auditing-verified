@@ -681,6 +681,196 @@ move=> Hsub Hge0 Hc.
 exact: (@markov_ineq (M n) _ Hc (Hge0 n)).
 Qed.
 
+(** ** Telescoping expectation identity *)
+
+(** Telescoping: the expectation difference across [n] steps decomposes as
+    a sum of one-step differences. Pure algebraic identity, requires no
+    martingale hypothesis. *)
+Lemma Exp_telescope (M : nat -> Omega -> R) (n : nat) :
+  Exp (M n) - Exp (M 0) = \sum_(k < n) (Exp (M k.+1) - Exp (M k)).
+Proof.
+elim: n => [|n IH]; first by rewrite big_ord0 subrr.
+by rewrite big_ord_recr /= -IH addrC addrA subrK.
+Qed.
+
+(** Symmetric form: the total expectation drop of a process equals the sum
+    of its one-step drops. *)
+Lemma Exp_telescope_sub (M : nat -> Omega -> R) (n : nat) :
+  Exp (M 0) - Exp (M n) = \sum_(k < n) (Exp (M k) - Exp (M k.+1)).
+Proof.
+rewrite -(opprB (Exp (M n))) Exp_telescope -sumrN.
+by apply: eq_bigr => k _; rewrite opprB.
+Qed.
+
+(** One-step expectation drop of a supermartingale is non-negative. *)
+Lemma supermartingale_one_step_drop (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (k : nat) :
+  filtration F ->
+  supermartingale F M ->
+  (forall x, 0 < \sum_(y | F k x y) mu y) ->
+  0 <= Exp (M k) - Exp (M k.+1).
+Proof.
+move=> HF Hsup Hcell.
+rewrite subr_ge0.
+exact: (@supermartingale_Exp_mono F M k HF Hsup Hcell).
+Qed.
+
+(** Every summand of the telescoping decomposition of a supermartingale is
+    non-negative. *)
+Lemma supermartingale_telescope_ge0 (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  filtration F ->
+  supermartingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  0 <= \sum_(k < n) (Exp (M k) - Exp (M k.+1)).
+Proof.
+move=> HF Hsup Hcell.
+apply: sumr_ge0 => k _.
+exact: supermartingale_one_step_drop HF Hsup (Hcell k).
+Qed.
+
+(** ** Reverse (lower) Markov inequality *)
+
+(** If [X <= B] almost surely and [c < B], the probability that [X >= c]
+    admits the lower bound [(E[X] - c) / (B - c)]. Complements the classical
+    upper-tail Markov inequality. *)
+Lemma markov_ineq_lower (X : Omega -> R) (B c : R) :
+  c < B ->
+  (forall x, X x <= B) ->
+  (Exp X - c) / (B - c) <= @Pr R _ mu (fun x => c <= X x).
+Proof.
+move=> HcB HXB.
+have HBc_pos : 0 < B - c by rewrite subr_gt0.
+rewrite ler_pdivrMr //.
+(* Goal: Exp X - c <= Pr (c <= X) * (B - c) *)
+have Hsum_split : \sum_(x | c <= X x) mu x
+                + \sum_(x | ~~ (c <= X x)) mu x = 1.
+  transitivity (\sum_x mu x); last exact: mu_sum1.
+  by rewrite [RHS](bigID (fun x => c <= X x)) /=.
+have Hcompl : \sum_(x | ~~ (c <= X x)) mu x
+            = 1 - @Pr R _ mu (fun x => c <= X x).
+  rewrite /Pr -Hsum_split.
+  by rewrite [X in _ = X - _]addrC addrK.
+have Hupper : Exp X <= B * @Pr R _ mu (fun x => c <= X x)
+                      + c * \sum_(x | ~~ (c <= X x)) mu x.
+  rewrite /Exp (bigID (fun x => c <= X x)) /=.
+  apply: lerD.
+  - rewrite /Pr mulr_sumr; apply: ler_sum => x _.
+    by rewrite [B * _]mulrC; apply: ler_wpM2l; [exact: mu_ge0 | exact: HXB].
+  - rewrite mulr_sumr; apply: ler_sum => x.
+    rewrite -ltNge => Hxc.
+    by rewrite [c * _]mulrC; apply: ler_wpM2l; [exact: mu_ge0 | exact: ltW].
+rewrite Hcompl in Hupper.
+(* Hupper : Exp X <= B * P + c * (1 - P) *)
+have : Exp X - c <= B * @Pr R _ mu (fun x => c <= X x)
+                  + c * (1 - @Pr R _ mu (fun x => c <= X x)) - c.
+  by rewrite lerD2r.
+move=> Hstep.
+apply: le_trans Hstep _.
+(* Goal: B * P + c * (1 - P) - c <= Pr (c <= X) * (B - c) *)
+rewrite mulrBr mulr1 mulrBr.
+rewrite (mulrC _ B) (mulrC _ c).
+by rewrite addrAC addrA subrK.
+Qed.
+
+(** ** Reverse filtrations and reverse supermartingales *)
+
+(** A reverse filtration has equivalence relations at each level that
+    become COARSER as the index grows (so [F n] refines [F n.+1]),
+    dual to a forward filtration. *)
+Definition reverse_filtration (F : nat -> Omega -> Omega -> bool) :=
+  [/\ (forall n, reflexive (F n)),
+      (forall n, symmetric (F n)),
+      (forall n, transitive (F n)) &
+      (forall n x y, F n x y -> F n.+1 x y) ].
+
+(** Tower property at a single level. The proof of [tower_property] only
+    uses the equivalence-relation structure at that level, not the
+    refinement condition, so it applies equally to forward and reverse
+    filtrations. *)
+Lemma tower_property_level (F : nat -> Omega -> Omega -> bool)
+    (X : Omega -> R) (n : nat) :
+  (forall k, reflexive (F k)) ->
+  (forall k, symmetric (F k)) ->
+  (forall k, transitive (F k)) ->
+  (forall x, 0 < \sum_(y | F n x y) mu y) ->
+  Exp (cond_exp F X n) = Exp X.
+Proof.
+move=> Hrefl Hsym Htrans Hcell.
+rewrite /Exp /cond_exp.
+have Hpred : forall (G : Omega -> R),
+  \sum_(x : Omega) G x = \sum_(x | predT x) G x
+  by move=> G; rewrite big_mkcond /=.
+rewrite !Hpred.
+have Hbody : forall x,
+  mu x * ((\sum_(y | F n x y) mu y * X y) / \sum_(y | F n x y) mu y) =
+  \sum_(y | F n x y) mu y * X y * (mu x / \sum_(z | F n x z) mu z).
+  move=> x; rewrite /cond_exp.
+  transitivity ((\sum_(y | F n x y) mu y * X y) *
+    (mu x / \sum_(y | F n x y) mu y)); first by rewrite mulrCA.
+  by rewrite mulr_suml.
+transitivity (\sum_(x | predT x) \sum_(y | F n x y)
+  mu y * X y * (mu x / \sum_(z | F n x z) mu z)).
+  by apply: eq_bigr => x _; exact: Hbody.
+have Hinj : injective (fun p : Omega * Omega => (p.2, p.1))
+  by move=> [a b] [c d] /= [-> ->].
+rewrite (pair_big_dep predT (F n)) /=.
+symmetry.
+transitivity (\sum_(y | predT y) \sum_(x | F n x y)
+  mu y * X y * (mu x / \sum_(z | F n x z) mu z)).
+  apply: eq_bigr => y _; rewrite -[LHS]mulr1 -mulr_sumr; congr (_ * _).
+  under eq_bigr => x Hxy do
+    rewrite (equiv_class_sum (F_eq := F n) (Htrans n) (Hsym n) Hxy).
+  rewrite -mulr_suml.
+  have -> : \sum_(j | F n j y) mu j = \sum_(z | F n y z) mu z
+    by apply: eq_bigl => z; rewrite (Hsym n).
+  by rewrite divff // gt_eqF.
+rewrite (pair_big_dep predT (fun y x => F n x y)) /=.
+by rewrite (reindex_inj Hinj) /=.
+Qed.
+
+(** [reverse_supermartingale F M]: [M] is adapted to the reverse
+    filtration [F], and the conditional expectation of [M n] given the
+    coarser [F n.+1]-cell dominates [M n.+1]. Equivalently, [M n.+1] is
+    bounded above by the [F n.+1]-averaged value of [M n]. *)
+Definition reverse_supermartingale
+    (F : nat -> Omega -> Omega -> bool) (M : nat -> Omega -> R) :=
+  adapted F M /\
+  forall n x, M n.+1 x <= cond_exp F (M n) n.+1 x.
+
+(** A reverse supermartingale has non-increasing expected value at each
+    step, just like a forward supermartingale. The direction is the same;
+    only the filtration structure is reversed. *)
+Lemma reverse_supermartingale_Exp_mono
+    (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  reverse_filtration F ->
+  reverse_supermartingale F M ->
+  (forall x, 0 < \sum_(y | F n.+1 x y) mu y) ->
+  Exp (M n.+1) <= Exp (M n).
+Proof.
+move=> [Hrefl Hsym Htrans _] [Hadapt Hrsup] Hcell.
+apply: (le_trans (y := Exp (cond_exp F (M n) n.+1))).
+  rewrite /Exp; apply: ler_sum => x _.
+  by apply: ler_wpM2l; [exact: mu_ge0 | exact: Hrsup].
+by rewrite (@tower_property_level F (M n) n.+1 Hrefl Hsym Htrans Hcell).
+Qed.
+
+(** A reverse supermartingale's expected value at any time [n] is bounded
+    above by its initial expected value, by iterated one-step monotonicity. *)
+Lemma reverse_supermartingale_Exp_bound
+    (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  reverse_filtration F ->
+  reverse_supermartingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  Exp (M n) <= Exp (M 0).
+Proof.
+move=> HF Hrsup Hcell; elim: n => [|n IH]; first exact: lexx.
+apply: (le_trans _ IH).
+exact: (@reverse_supermartingale_Exp_mono F M n HF Hrsup (Hcell n.+1)).
+Qed.
+
 End DiscreteVille.
 
 (* Prevent the kernel from unfolding intermediate definitions in
