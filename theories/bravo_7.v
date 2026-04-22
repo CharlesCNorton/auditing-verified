@@ -27,50 +27,6 @@ Open Scope ring_scope.
 
 From Auditing Require Import auditing_1 probability_4 ville_6.
 
-(** ** Risk-limited test abstraction *)
-
-Section RiskLimitedTest.
-
-Variable R : realType.
-
-(** [risk_limited_test]: a record capturing everything needed for a
-    per-contest risk bound via the supermartingale method.  Bundles a
-    finite sample space, a probability measure, a filtration, a
-    non-negative supermartingale with initial expectation at most 1,
-    and a risk limit in (0,1). *)
-Record risk_limited_test := RiskLimitedTest {
-  rlt_Omega : finType;
-  rlt_mu : rlt_Omega -> R;
-  rlt_mu_ge0 : forall x, 0 <= rlt_mu x;
-  rlt_mu_sum1 : \sum_x rlt_mu x = 1;
-  rlt_F : nat -> rlt_Omega -> rlt_Omega -> bool;
-  rlt_M : nat -> rlt_Omega -> R;
-  rlt_filtration : @filtration rlt_Omega rlt_F;
-  rlt_supermg : @supermartingale R rlt_Omega rlt_mu rlt_F rlt_M;
-  rlt_nonneg : forall k x, 0 <= rlt_M k x;
-  rlt_Exp0 : @Exp R rlt_Omega rlt_mu (rlt_M 0) <= 1;
-  rlt_alpha : R;
-  rlt_alpha_pos : 0 < rlt_alpha;
-  rlt_alpha_lt1 : rlt_alpha < 1;
-}.
-
-(** [rlt_ville T n]: Ville's inequality instantiated for a risk-limited
-    test [T] at time [n].  The probability that the test statistic [M_n]
-    exceeds [1/alpha] is at most [alpha]. *)
-Lemma rlt_ville (T : risk_limited_test) (n : nat)
-    (Hcell : forall k (x : rlt_Omega T),
-       0 < \sum_(y | rlt_F k x y) rlt_mu y) :
-  @Pr R (rlt_Omega T) (rlt_mu (r:=T)) (fun x => (rlt_alpha T)^-1 <= rlt_M n x)
-    <= rlt_alpha T.
-Proof.
-exact: (ville_ineq (rlt_mu_ge0 (r:=T)) n
-          (rlt_filtration T) (rlt_supermg T)
-          Hcell (rlt_nonneg (r:=T))
-          (rlt_alpha_pos T) (rlt_alpha_lt1 T) (rlt_Exp0 T)).
-Qed.
-
-End RiskLimitedTest.
-
 (** ** Binary ballot model and single-step likelihood ratio *)
 
 Section BinaryBallot.
@@ -350,7 +306,7 @@ Proof. by rewrite /product_lr big_ord_recr. Qed.
 
 (** [product_lr_Exp0_le1]: the initial expectation of the product
     likelihood ratio is at most 1.  This is the base case that
-    feeds into Ville's inequality via [rlt_ville].
+    feeds into Ville's inequality via [ville_ineq].
 
     The N-step martingale property (E[product_lr(n+1) | F_n] =
     product_lr(n)) follows from [multiplicative_martingale_step]
@@ -1116,7 +1072,7 @@ End BRAVOEndToEnd.
      The likelihood-ratio martingale originates in A. Wald,
      Sequential Analysis, John Wiley & Sons, New York, 1947.
 
-   rlt_ville, ville_ineq (from ville_6.v):
+   ville_ineq (from ville_6.v):
      J. Ville, Étude critique de la notion de collectif,
      Gauthier-Villars, Paris, 1939.
 
