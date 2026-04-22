@@ -27,6 +27,8 @@ Open Scope ring_scope.
 
 From Auditing Require Import auditing_1 probability_4 ville_6.
 
+Strategy 1000 [cond_exp Exp].
+
 (** ** Risk-limited test abstraction *)
 
 Section RiskLimitedTest.
@@ -403,504 +405,6 @@ Qed.
 
 End ProductLRExp0.
 
-(** ** Product-space martingale *)
-
-Section BallotProductSpace.
-
-Variable R : realType.
-Variable p : R.
-Hypothesis Hp : 2%:R^-1 < p.
-Hypothesis Hp1 : p < 1.
-Variable N : nat.
-Hypothesis HN : (0 < N)%N.
-
-(** [ballot_prod_mu f]: the product ballot measure on [{ffun 'I_N -> bool}].
-    Each coordinate is independent with mass [p] on [true] and [1-p]
-    on [false]. *)
-Definition ballot_prod_mu (f : {ffun 'I_N -> bool}) : R :=
-  \prod_(i < N) ballot_mu p (f i).
-
-(** The product measure is non-negative. *)
-Lemma ballot_prod_mu_ge0 (f : {ffun 'I_N -> bool}) :
-  0 <= ballot_prod_mu f.
-Proof.
-apply: prodr_ge0 => i _; rewrite /ballot_mu.
-by case: (f i); [exact: ltW (p_pos Hp) | exact: ltW (q_pos Hp1)].
-Qed.
-
-(** [ballot_F n x y]: the natural filtration — [x] and [y] agree on
-    the first [n] coordinates. *)
-Definition ballot_F (n : nat) (x y : {ffun 'I_N -> bool}) : bool :=
-  [forall i : 'I_N, (i < n)%N ==> (x i == y i)].
-
-(** The natural filtration is reflexive. *)
-Lemma ballot_F_refl : forall n, reflexive (@ballot_F n).
-Proof. by move=> n x; apply/forallP => i; apply/implyP => _; rewrite eqxx. Qed.
-
-(** The natural filtration is symmetric. *)
-Lemma ballot_F_sym : forall n, symmetric (@ballot_F n).
-Proof.
-move=> n x y; apply/forallP/forallP => H i.
-  by move/(_ i)/implyP: H => H; apply/implyP => Hi; rewrite eq_sym; exact: H.
-by move/(_ i)/implyP: H => H; apply/implyP => Hi; rewrite eq_sym; exact: H.
-Qed.
-
-(** The natural filtration is transitive. *)
-Lemma ballot_F_trans : forall n, transitive (@ballot_F n).
-Proof.
-move=> n y x z /forallP Hxy /forallP Hyz.
-apply/forallP => i; apply/implyP => Hi.
-by rewrite (eqP (implyP (Hxy i) Hi)) (eqP (implyP (Hyz i) Hi)).
-Qed.
-
-(** The natural filtration refines over time. *)
-Lemma ballot_F_refine : forall n x y, ballot_F n.+1 x y -> ballot_F n x y.
-Proof.
-move=> n x y /forallP H; apply/forallP => i; apply/implyP => Hi.
-by apply: (implyP (H i)); exact: ltnW.
-Qed.
-
-(** The natural filtration is a valid filtration. *)
-Lemma ballot_filtration : @filtration _ ballot_F.
-Proof.
-by split; [exact: ballot_F_refl | exact: ballot_F_sym |
-           exact: ballot_F_trans | exact: ballot_F_refine].
-Qed.
-
-(** The product measure is strictly positive on every element. *)
-Lemma ballot_prod_mu_pos (f : {ffun 'I_N -> bool}) :
-  0 < ballot_prod_mu f.
-Proof.
-apply: prodr_gt0 => i _; rewrite /ballot_mu.
-by case: (f i); [exact: p_pos Hp | exact: q_pos Hp1].
-Qed.
-
-(** Cell-positivity for the natural filtration: every cell has positive
-    total mass. *)
-Lemma ballot_F_cell_pos :
-  forall n (x : {ffun 'I_N -> bool}),
-    0 < \sum_(y | ballot_F n x y) ballot_prod_mu y.
-Proof.
-move=> n x; rewrite (bigD1 x); last exact: ballot_F_refl.
-apply: ltr_pwDl; first exact: ballot_prod_mu_pos.
-by apply: sumr_ge0 => y _; exact: ballot_prod_mu_ge0.
-Qed.
-
-(** [ballot_plr n f]: the product likelihood ratio at step [n]
-    computed directly from a finite ballot sequence [{ffun 'I_N -> bool}].
-    Requires [n <= N]. *)
-Definition ballot_plr (n : nat) (Hn : (n <= N)%N) (f : {ffun 'I_N -> bool}) : R :=
-  \prod_(i < n) lr p (f (Ordinal (leq_trans (ltn_ord i) Hn))).
-
-(** Simplification: [ballot_plr] at step [n] is a product of [lr]
-    applied to the first [n] coordinates. When [i : 'I_n] and
-    [n <= N], the ordinal injection maps [i] into ['I_N]. *)
-(** [ballot_plr n] is adapted to [ballot_F n]: if [x] and [y] agree
-    on the first [n] positions, then [ballot_plr n x = ballot_plr n y]. *)
-Lemma ballot_plr_adapted (n : nat) (Hn : (n <= N)%N)
-    (x y : {ffun 'I_N -> bool}) :
-  ballot_F n x y ->
-  ballot_plr Hn x = ballot_plr Hn y.
-Proof.
-move=> /forallP Hxy.
-rewrite /ballot_plr; apply: eq_bigr => i _ /=.
-set j := Ordinal (leq_trans (ltn_ord i) Hn).
-have Hji : (j < n)%N := ltn_ord i.
-by rewrite (eqP (implyP (Hxy j) Hji)).
-Qed.
-
-(** The product measure normalizes to 1. Uses [bigA_distr_bigA] to
-    factor the sum over functions into a product of per-coordinate sums,
-    each of which equals 1 by [ballot_mu_sum1]. *)
-Lemma ballot_prod_mu_sum1 :
-  \sum_(f : {ffun 'I_N -> bool}) ballot_prod_mu f = 1.
-Proof.
-rewrite /ballot_prod_mu.
-have <- : \prod_(i < N) \sum_(b : bool) ballot_mu p b =
-          \sum_(f : {ffun 'I_N -> bool}) \prod_(i < N) ballot_mu p (f i).
-  exact: bigA_distr_bigA.
-have Hmu1 : \sum_(b : bool) ballot_mu p b = 1 by exact: ballot_mu_sum1.
-by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: Hmu1.
-Qed.
-
-(** At step [0], every function is in the cell: sum = 1 = empty product. *)
-Lemma ballot_F_cell_mass_0 (x : {ffun 'I_N -> bool}) :
-  \sum_(f : {ffun 'I_N -> bool} | ballot_F 0 x f) ballot_prod_mu f = 1.
-Proof.
-have -> : \sum_(f | ballot_F 0 x f) ballot_prod_mu f =
-          \sum_f ballot_prod_mu f.
-  by apply: eq_bigl => f; apply/forallP => i; rewrite ltn0.
-exact: ballot_prod_mu_sum1.
-Qed.
-
-(** At step [N], the cell contains only [x] itself. *)
-Lemma ballot_F_cell_mass_N (x : {ffun 'I_N -> bool}) :
-  \sum_(f : {ffun 'I_N -> bool} | ballot_F N x f) ballot_prod_mu f =
-  ballot_prod_mu x.
-Proof.
-rewrite (big_pred1 x) // => f; apply/idP/idP.
-- move/forallP => Hfx; apply/eqP/ffunP => i.
-  by move/implyP: (Hfx i) => /(_ (ltn_ord i)) /eqP.
-- by move/eqP => ->; exact: ballot_F_refl.
-Qed.
-
-(** Equivalence: [ballot_F n.+1] splits as [ballot_F n] plus the [n]-th
-    coordinate constraint. *)
-Lemma ballot_F_split (n : nat) (Hn : (n < N)%N)
-    (x f : {ffun 'I_N -> bool}) :
-  ballot_F n.+1 x f = ballot_F n x f && (f (Ordinal Hn) == x (Ordinal Hn)).
-Proof.
-apply/idP/andP.
-- move/forallP => H; split.
-  + apply/forallP => i; apply/implyP => Hi.
-    have /implyP Hi1 := H i.
-    exact: (Hi1 (leq_trans Hi (leqnSn n))).
-  + have /implyP Hn1 := H (Ordinal Hn).
-    by rewrite eq_sym; exact: (Hn1 (ltnSn n)).
-- move=> [Hn_cell /eqP Heq]; apply/forallP => i; apply/implyP.
-  rewrite ltnS leq_eqVlt => /orP [/eqP Hi|Hi].
-  + have -> : i = Ordinal Hn by apply: val_inj; rewrite /= Hi.
-    by rewrite eq_sym; apply/eqP.
-  + by move: (forallP Hn_cell i); rewrite Hi.
-Qed.
-
-(** ** Cell mass factorization *)
-
-(** [flip_at j f]: flip coordinate [j] of [f], leaving all others unchanged.
-    Used to establish the bijection between the "agree" and "disagree"
-    halves of a filtration cell when splitting by a free coordinate. *)
-Definition flip_at (j : 'I_N) (f : {ffun 'I_N -> bool}) : {ffun 'I_N -> bool} :=
-  [ffun i => if i == j then ~~ f i else f i].
-
-(** [flip_at] is an involution. *)
-Lemma flip_at_invol (j : 'I_N) : involutive (flip_at j).
-Proof.
-by move=> f; apply/ffunP => i; rewrite !ffunE; case: eqP => //= _; rewrite negbK.
-Qed.
-
-(** [flip_at] is injective. *)
-Lemma flip_at_inj (j : 'I_N) : injective (flip_at j).
-Proof. exact: inv_inj (flip_at_invol j). Qed.
-
-(** [flip_at] preserves coordinates other than [j]. *)
-Lemma flip_at_ne (j : 'I_N) (f : {ffun 'I_N -> bool}) (i : 'I_N) :
-  i != j -> (flip_at j f) i = f i.
-Proof. by rewrite ffunE => /negbTE ->. Qed.
-
-(** [flip_at] negates coordinate [j]. *)
-Lemma flip_at_eq (j : 'I_N) (f : {ffun 'I_N -> bool}) :
-  (flip_at j f) j = ~~ f j.
-Proof. by rewrite ffunE eqxx. Qed.
-
-(** [flip_at] preserves the [ballot_F n] equivalence class when [n <= j]:
-    flipping a free coordinate does not affect the first [n] positions. *)
-Lemma flip_at_ballot_F (n : nat) (j : 'I_N) (x f : {ffun 'I_N -> bool}) :
-  (n <= j)%N -> ballot_F n x f -> ballot_F n x (flip_at j f).
-Proof.
-move=> Hnj /forallP Hxf; apply/forallP => i; apply/implyP => Hi.
-have Hij : i != j.
-  by apply: contraTN Hi => /eqP ->; rewrite -leqNgt.
-by rewrite flip_at_ne //; exact: implyP (Hxf i) Hi.
-Qed.
-
-(** [flip_at] preserves the [ballot_F n] cell as a boolean identity. *)
-Lemma flip_at_ballot_F_id (n : nat) (j : 'I_N) (x f : {ffun 'I_N -> bool}) :
-  (n <= j)%N -> ballot_F n x (flip_at j f) = ballot_F n x f.
-Proof.
-move=> Hnj; apply/forallP/forallP => /= H i;
-  have /implyP Hi := H i; apply/implyP => Hin;
-  have Hij : i != j by [apply: contraTN Hin => /eqP ->; rewrite -leqNgt];
-  move: (Hi Hin); by rewrite flip_at_ne.
-Qed.
-
-(** The reduced product (excluding coordinate [j]) is preserved by [flip_at j]. *)
-Lemma flip_at_reduced_prod (j : 'I_N) (f : {ffun 'I_N -> bool}) :
-  \prod_(i < N | i != j) ballot_mu p ((flip_at j f) i) =
-  \prod_(i < N | i != j) ballot_mu p (f i).
-Proof.
-by apply: eq_bigr => i Hij; rewrite flip_at_ne.
-Qed.
-
-(* Prevent kernel unfolding of flip_at infrastructure. *)
-Strategy 100 [flip_at].
-
-(** Cell mass recurrence: the [n+1]-cell mass is the [n]-cell mass
-    times the ballot measure at coordinate [n].
-
-    The proof splits the [n]-cell by the value at coordinate [n]
-    (which is free in the [n]-cell), factors out the ballot measure
-    from each half, and uses [flip_at] to equate the reduced-product
-    sums over the "agree" and "disagree" halves.  The two ballot
-    measures sum to 1, collapsing the [n]-cell mass to the
-    reduced-product sum, which then recombines with the [n+1]-cell. *)
-Lemma ballot_F_cell_mass_step (n : nat) (Hn : (n < N)%N)
-    (x : {ffun 'I_N -> bool}) :
-  \sum_(f | ballot_F n.+1 x f) ballot_prod_mu f =
-  ballot_mu p (x (Ordinal Hn)) *
-  \sum_(f | ballot_F n x f) ballot_prod_mu f.
-Proof.
-set j := Ordinal Hn.
-(* Reduced product: ballot_prod_mu without coordinate j *)
-set rprod := fun f : {ffun 'I_N -> bool} =>
-  \prod_(i < N | i != j) ballot_mu p (f i).
-(* S := reduced-product sum over cell(n+1) *)
-set S := \sum_(f | ballot_F n.+1 x f) rprod f.
-(* Step A: cell(n+1) = ballot_mu(x j) * S *)
-have HA : \sum_(f | ballot_F n.+1 x f) ballot_prod_mu f =
-          ballot_mu p (x j) * S.
-  rewrite /S mulr_sumr; apply: eq_bigr => f Hf.
-  rewrite /ballot_prod_mu (bigD1 j) //=; congr (_ * _).
-  by move: Hf; rewrite (ballot_F_split Hn) => /andP [_ /eqP ->].
-(* Step B: cell(n) = S *)
-suff HB : \sum_(f | ballot_F n x f) ballot_prod_mu f = S
-  by rewrite HA HB.
-(* Split cell(n) by f(j) using bigID *)
-rewrite (bigID (fun f : {ffun _ -> _} => f j == x j)) /=.
-(* Factor ballot_prod_mu in each half *)
-have Hfactor : forall f : {ffun 'I_N -> bool},
-  ballot_prod_mu f = ballot_mu p (f j) * rprod f.
-  by move=> f; rewrite /ballot_prod_mu (bigD1 j).
-(* Agree half: ballot_F n x f && f(j) == x(j)  is  cell(n+1) *)
-have Hagree :
-  \sum_(f | ballot_F n x f && (f j == x j)) ballot_prod_mu f =
-  ballot_mu p (x j) * S.
-  transitivity (\sum_(f | ballot_F n.+1 x f) ballot_prod_mu f).
-    by apply: eq_bigl => f; rewrite (ballot_F_split Hn).
-  exact: HA.
-(* Disagree rprod-sum = S via flip_at reindex *)
-have Hflip_rprod :
-  \sum_(f | ballot_F n x f && (f j != x j)) rprod f = S.
-  rewrite /S; symmetry.
-  have Hinj : injective (flip_at j).
-    by move=> a b /(congr1 (flip_at j)); rewrite !flip_at_invol.
-  rewrite (reindex_inj Hinj).
-  apply: eq_big => f.
-  - (* Predicate: ballot_F n.+1 x (flip f) = ballot_F n x f && f(j) != x(j) *)
-    rewrite (ballot_F_split Hn) flip_at_eq
-            (@flip_at_ballot_F_id _ j _ _ (leqnn _)).
-    by congr (_ && _); case: (f j); case: (x j).
-  - (* Body: rprod(flip f) = rprod(f) *)
-    by move=> _; exact: flip_at_reduced_prod.
-(* Disagree half = ballot_mu(~~x j) * S *)
-have Hdisagree :
-  \sum_(f | ballot_F n x f && (f j != x j)) ballot_prod_mu f =
-  ballot_mu p (~~ x j) * S.
-  rewrite -Hflip_rprod mulr_sumr.
-  apply: eq_bigr => f /andP [_ Hne].
-  rewrite Hfactor; congr (ballot_mu p _ * _).
-  by case: (f j) (x j) Hne => [] [].
-(* Combine: cell(n) = (ballot_mu(x j) + ballot_mu(~~x j)) * S = S *)
-rewrite Hagree Hdisagree -mulrDl.
-suff -> : ballot_mu p (x j) + ballot_mu p (~~ x j) = 1 by rewrite mul1r.
-by case: (x j); rewrite /ballot_mu /= ?addrC subrK.
-Qed.
-
-(** General cell mass formula: the sum of [ballot_prod_mu] over the
-    [ballot_F n] cell of [x] equals the product of ballot measures
-    at the first [n] coordinates of [x].
-
-    At [n = 0] the product is empty (= 1) and the cell is the full space.
-    At [n = N] every coordinate is fixed and the cell is the singleton [{x}].
-    The general case follows by forward induction on [n] using the
-    recurrence [ballot_F_cell_mass_step]. *)
-Lemma ballot_F_cell_mass (n : nat) (Hn : (n <= N)%N)
-    (x : {ffun 'I_N -> bool}) :
-  \sum_(f : {ffun 'I_N -> bool} | ballot_F n x f) ballot_prod_mu f =
-  \prod_(i < N | (i < n)%N) ballot_mu p (x i).
-Proof.
-elim: n Hn => [|n IH] Hn.
-  rewrite big_pred0; last by move=> i; rewrite ltn0.
-  exact: ballot_F_cell_mass_0.
-have Hn' : (n < N)%N := Hn.
-rewrite (ballot_F_cell_mass_step Hn') (IH (ltnW Hn)).
-set j := Ordinal Hn'.
-rewrite (bigD1 j) /=; last by [].
-congr (ballot_mu p (x j) * _).
-apply: eq_bigl => i.
-(* Goal: (i < n.+1)%N && (i != j) = (i < n)%N *)
-by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
-Qed.
-
-(** The sum of [ballot_prod_mu] over the cell of [ballot_F n] restricted
-    to a specific value at coordinate [n] equals [ballot_mu p b] times
-    the cell mass.  Proved by complementation: the agree half is
-    [cell(n+1)] from [ballot_F_cell_mass_step], and the disagree half
-    is the remainder. *)
-Lemma ballot_F_cell_mass_coord (n : nat) (Hn : (n < N)%N)
-    (x : {ffun 'I_N -> bool}) (b : bool) :
-  \sum_(f | ballot_F n x f && (f (Ordinal Hn) == b)) ballot_prod_mu f =
-  ballot_mu p b * \sum_(f | ballot_F n x f) ballot_prod_mu f.
-Proof.
-set j := Ordinal Hn.
-set C := \sum_(f | ballot_F n x f) ballot_prod_mu f.
-(* Split cell by f j *)
-have Hsplit : C =
-  \sum_(f | ballot_F n x f && (f j == x j)) ballot_prod_mu f +
-  \sum_(f | ballot_F n x f && (f j != x j)) ballot_prod_mu f
-  by rewrite -bigID.
-(* The agree half = cell(n+1) = ballot_mu(x j) * C *)
-have Hagree :
-  \sum_(f | ballot_F n x f && (f j == x j)) ballot_prod_mu f =
-  ballot_mu p (x j) * C.
-  have HH := ballot_F_cell_mass_step Hn x.
-  rewrite -/j in HH.
-  rewrite -/C -HH; apply: eq_bigl => f.
-  by rewrite (ballot_F_split Hn).
-(* The disagree half = ballot_mu(~~x j) * C by complement *)
-have Hdisagree :
-  \sum_(f | ballot_F n x f && (f j != x j)) ballot_prod_mu f =
-  ballot_mu p (~~ x j) * C.
-  have : C - ballot_mu p (x j) * C =
-    ballot_mu p (~~ x j) * C.
-    rewrite -mulrBl; congr (_ * C).
-    by case: (x j); rewrite /ballot_mu //= opprB addrCA subrr addr0.
-  by rewrite -Hagree -Hsplit addrK.
-(* Case split on b *)
-case Hb: (b == x j).
-- by move/eqP: Hb => ->; exact: Hagree.
-- have -> : b = ~~ x j by case: b (x j) Hb => [] [].
-  exact: Hdisagree.
-Qed.
-
-(** Conditional expectation of any function [g] applied to a free
-    coordinate [n_ord] given [ballot_F n] equals the unconditional
-    expectation [sum_b ballot_mu b * g b].  The product measure
-    structure makes free coordinates conditionally independent
-    of the fixed ones. *)
-Lemma ballot_F_cond_exp_free (n : nat) (Hn : (n < N)%N)
-    (x : {ffun 'I_N -> bool}) (g : bool -> R) :
-  0 < \sum_(f | ballot_F n x f) ballot_prod_mu f ->
-  @cond_exp R _ ballot_prod_mu ballot_F
-    (fun f => g (f (Ordinal Hn))) n x =
-  \sum_(b : bool) ballot_mu p b * g b.
-Proof.
-move=> Hcell; rewrite /cond_exp.
-set j := Ordinal Hn.
-(* Numerator = sum_b [ballot_mu b * g b] * cell_mass *)
-have Hnum : \sum_(f | ballot_F n x f) ballot_prod_mu f * g (f j) =
-            (\sum_(b : bool) ballot_mu p b * g b) *
-            \sum_(f | ballot_F n x f) ballot_prod_mu f.
-  rewrite (bigID (fun f : {ffun _ -> _} => f j)) /=.
-  have Htrue : \sum_(f | ballot_F n x f && f j)
-    ballot_prod_mu f * g (f j) =
-    ballot_mu p true * g true *
-    \sum_(f | ballot_F n x f) ballot_prod_mu f.
-    under eq_bigr do rewrite [_ && f j]andbC => /andP [/eqP -> _].
-    rewrite -mulr_sumr -(ballot_F_cell_mass_coord Hn x true).
-    by apply: eq_bigl => f; rewrite [_ && f j]andbC.
-  have Hfalse : \sum_(f | ballot_F n x f && ~~ f j)
-    ballot_prod_mu f * g (f j) =
-    ballot_mu p false * g false *
-    \sum_(f | ballot_F n x f) ballot_prod_mu f.
-    under eq_bigr do rewrite [_ && ~~ f j]andbC => /andP [Hnf _].
-    have -> : forall f0, ~~ f0 j -> g (f0 j) = g false
-      by move=> f0; case: (f0 j).
-    rewrite -mulr_sumr -(ballot_F_cell_mass_coord Hn x false).
-    apply: eq_bigl => f; rewrite [_ && ~~ f j]andbC.
-    congr (_ && _); by case: (f j).
-  rewrite Htrue Hfalse big_bool /= -mulrDl.
-  done.
-rewrite Hnum mulrA mulfK //; last exact: gt_eqF.
-done.
-Qed.
-
-(** Conditional expectation of [lr] at a free coordinate equals 1. *)
-Lemma ballot_F_cond_exp_lr (n : nat) (Hn : (n < N)%N)
-    (x : {ffun 'I_N -> bool}) :
-  0 < \sum_(f | ballot_F n x f) ballot_prod_mu f ->
-  @cond_exp R _ ballot_prod_mu ballot_F
-    (fun f => lr p (f (Ordinal Hn))) n x = 1.
-Proof.
-move=> Hcell; rewrite (ballot_F_cond_exp_free Hn x (lr p) Hcell).
-exact: lr_expectation_1.
-Qed.
-
-(** ** Time-varying product likelihood ratio *)
-
-(** [ballot_M n f]: the product likelihood ratio at step [n], using
-    only the first [n] coordinates of [f].  Defined as a filtered
-    product to avoid dependent-type proof terms in the time index. *)
-Definition ballot_M (n : nat) (f : {ffun 'I_N -> bool}) : R :=
-  \prod_(i < N | (i < n)%N) lr p (f i).
-
-Lemma ballot_M_0 (f : {ffun 'I_N -> bool}) : ballot_M 0 f = 1.
-Proof. by rewrite /ballot_M big_pred0 // => i; rewrite ltn0. Qed.
-
-Lemma ballot_M_ge0 (n : nat) (f : {ffun 'I_N -> bool}) :
-  0 <= ballot_M n f.
-Proof. by apply: prodr_ge0 => i _; exact: lr_ge0. Qed.
-
-Lemma ballot_M_step (n : nat) (Hn : (n < N)%N)
-    (f : {ffun 'I_N -> bool}) :
-  ballot_M n.+1 f = ballot_M n f * lr p (f (Ordinal Hn)).
-Proof.
-rewrite /ballot_M (bigD1 (Ordinal Hn)) //=.
-congr (lr p _ * _); apply: eq_bigl => i.
-by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
-Qed.
-
-Lemma ballot_M_adapted (n : nat) (x f : {ffun 'I_N -> bool}) :
-  ballot_F n x f -> ballot_M n x = ballot_M n f.
-Proof.
-move/forallP => Hxf; apply: eq_bigr => i /andP [_ Hi].
-by congr (lr p _); apply/eqP; exact: implyP (Hxf i) Hi.
-Qed.
-
-(** ** Supermartingale property *)
-
-Lemma ballot_M_supermartingale :
-  @supermartingale R _ ballot_prod_mu ballot_F ballot_M.
-Proof.
-split.
-- by move=> n x y Hxy; exact: ballot_M_adapted Hxy.
-- move=> n x.
-  case: (ltnP n N) => Hn.
-  + (* n < N: factor ballot_M(n+1) = ballot_M(n) * lr(f_n) *)
-    set j := Ordinal Hn.
-    rewrite /cond_exp.
-    set den := \sum_(f | ballot_F n x f) ballot_prod_mu f.
-    have Hden : 0 < den := ballot_F_cell_pos n x.
-    (* Rewrite numerator: replace M(n+1) with M(n) * lr *)
-    have Hnum : \sum_(f | ballot_F n x f) ballot_prod_mu f * ballot_M n.+1 f =
-      ballot_M n x * \sum_(f | ballot_F n x f) ballot_prod_mu f * lr p (f j).
-      rewrite mulr_sumr; apply: eq_bigr => f Hf.
-      by rewrite (ballot_M_step Hn) mulrA -(ballot_M_adapted Hf).
-    rewrite Hnum mulrA mulfK; last exact: gt_eqF.
-    (* The remaining sum / den is cond_exp of lr = 1 *)
-    have := ballot_F_cond_exp_lr Hn x Hden.
-    by rewrite /cond_exp -/den => ->; rewrite mulr1.
-  + (* n >= N: ballot_M is constant *)
-    rewrite (@cond_exp_measurable R _ ballot_prod_mu ballot_F
-      (ballot_M n.+1) n x ballot_filtration) //.
-    * move=> f Hf; rewrite /ballot_M; apply: eq_bigl => i.
-      by rewrite (ltn_leq_trans (ltn_ord i) Hn)
-                 (ltn_leq_trans (ltn_ord i) (leqW Hn)).
-    * exact: ballot_F_cell_pos.
-Qed.
-
-Lemma ballot_M_Exp0 : @Exp R _ ballot_prod_mu (ballot_M 0) <= 1.
-Proof.
-rewrite /Exp (eq_bigr (fun f => ballot_prod_mu f)); last first.
-  by move=> f _; rewrite ballot_M_0 mulr1.
-by rewrite ballot_prod_mu_sum1.
-Qed.
-
-(** Ville's inequality for the product likelihood ratio on the ballot
-    product space. *)
-Lemma ballot_M_ville (alpha : R) (n : nat) :
-  0 < alpha -> alpha < 1 ->
-  @Pr R _ ballot_prod_mu
-    (fun f => alpha^-1 <= ballot_M n f) <= alpha.
-Proof.
-move=> Ha0 Ha1.
-exact: (@ville_ineq R _ ballot_prod_mu ballot_F ballot_M alpha n
-  ballot_filtration ballot_M_supermartingale
-  ballot_F_cell_pos (fun k x => ballot_M_ge0 k x)
-  Ha0 Ha1 ballot_M_Exp0).
-Qed.
-
-End BallotProductSpace.
-
 (** ** Degradation connection *)
 
 (** End-to-end: for [k] independent contests, each with a per-contest
@@ -915,22 +419,6 @@ Lemma bravo_degradation (R : realType) (k : nat)
   (forall i, 0 <= pass_probs i <= 1 - alphas i) ->
   false_assurance_hetero alphas <= 1 - joint_pass pass_probs.
 Proof. exact: degradation_from_per_contest. Qed.
-
-(** Generalized product-measure normalization: requires only [0 < p < 1],
-    not [p > 1/2]. The null-hypothesis restriction is needed for the
-    likelihood ratio but not for measure normalization. *)
-Lemma ballot_prod_mu_sum1_gen (R : realType) (p : R) (N : nat) :
-  0 < p -> p < 1 ->
-  \sum_(f : {ffun 'I_N -> bool}) ballot_prod_mu p f = 1.
-Proof.
-move=> Hp0 Hp1; rewrite /ballot_prod_mu.
-have <- : \prod_(i < N) \sum_(b : bool) ballot_mu p b =
-          \sum_(f : {ffun 'I_N -> bool}) \prod_(i < N) ballot_mu p (f i).
-  exact: bigA_distr_bigA.
-have Hmu1 : \sum_(b : bool) ballot_mu p b = 1.
-  by rewrite big_bool /ballot_mu /= addrC subrK.
-by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: Hmu1.
-Qed.
 
 (** ** Multiplicative martingale step *)
 
@@ -987,10 +475,10 @@ End MultiplicativeStep.
 (** The logical chain connecting a single BRAVO test to the degradation
     bound is:
 
-    1. Define the likelihood ratio [lr] on the binary ballot space.
+    1. Define the likelihood ratio [lr] on the ballot space.
     2. Prove [E_null[lr] = 1] (the martingale identity, [lr_expectation_1]).
-    3. The sequential product [product_lr] inherits the martingale
-       property (the single-step identity is the inductive core).
+    3. The sequential product inherits the martingale property
+       (the single-step identity is the inductive core).
     4. Ville's inequality ([ville_ineq]) gives
        [Pr(product_lr >= 1/alpha) <= alpha].
     5. This per-contest bound plugs into [false_assurance_hetero]
@@ -999,16 +487,14 @@ End MultiplicativeStep.
        the joint false assurance bound for the full election.
 
     The key insight is the separation of concerns: steps 1-4 are
-    specific to the BRAVO protocol, while steps 5-6 are purely
+    specific to the audit protocol, while steps 5-6 are purely
     algebraic and apply to any mechanism that delivers a per-contest
-    risk bound. *)
+    risk bound.
 
-(** ** General ballot model (multi-candidate) *)
-
-(** Generalizes the binary ballot model from [bool] to an arbitrary
-    [finType].  The product measure, natural filtration, cell mass
-    factorization, and supermartingale machinery carry over with
-    [swap_at] replacing [flip_at]. *)
+    The general ballot model below proves the full chain for an
+    arbitrary finite candidate type [C], with [swap_at] providing
+    the coordinate-swap bijection for cell mass factorization.
+    The binary (BRAVO) case follows as the instantiation [C := bool]. *)
 
 Section GeneralBallot.
 
@@ -1114,9 +600,13 @@ Lemma swap_at_invol (j : 'I_N) (c1 c2 : C) :
   involutive (swap_at j c1 c2).
 Proof.
 move=> f; apply/ffunP => i; rewrite !ffunE.
-case: eqP => [->|//].
-by case: eqP => [->|]; [rewrite eqxx; case: eqP |
-  case: eqP => [->|//]; rewrite eqxx].
+have [->|_] := eqVneq i j; last by [].
+have [->|Hc1] := eqVneq (f j) c1.
+  have [->|_] := eqVneq c2 c1; first by [].
+  by rewrite eqxx.
+have [->|Hc2] := eqVneq (f j) c2.
+  by rewrite eqxx.
+by rewrite (negbTE Hc1) (negbTE Hc2).
 Qed.
 
 Lemma swap_at_inj (j : 'I_N) (c1 c2 : C) :
@@ -1133,14 +623,14 @@ Proof. by rewrite ffunE => /negbTE ->. Qed.
 Lemma swap_at_eq_c1 (j : 'I_N) (c1 c2 : C)
     (f : {ffun 'I_N -> C}) :
   f j = c1 -> (swap_at j c1 c2 f) j = c2.
-Proof. by move=> ->; rewrite ffunE eqxx eqxx. Qed.
+Proof. by move=> Hj; rewrite ffunE eqxx Hj eqxx. Qed.
 
 Lemma swap_at_eq_c2 (j : 'I_N) (c1 c2 : C)
     (f : {ffun 'I_N -> C}) :
   f j = c2 -> (swap_at j c1 c2 f) j = c1.
 Proof.
-move=> ->; rewrite ffunE eqxx.
-by case: eqP => [->|_]; rewrite eqxx.
+move=> Hj; rewrite ffunE eqxx Hj.
+by case: eqP => [->|_] //; rewrite eqxx.
 Qed.
 
 Lemma swap_at_gen_F (n : nat) (j : 'I_N) (c1 c2 : C)
@@ -1171,48 +661,47 @@ Lemma gen_cell_mass_step (n : nat) (Hn : (n < N)%N)
   \sum_(f | gen_F n x f) gen_prod_mu f.
 Proof.
 set j := Ordinal Hn.
-set rprod := fun f : {ffun 'I_N -> C} =>
-  \prod_(i < N | i != j) mu0 (f i).
-set S := \sum_(f | gen_F n.+1 x f) rprod f.
-(* Step A: cell(n+1) = mu0(x j) * S *)
-have HA : \sum_(f | gen_F n.+1 x f) gen_prod_mu f =
-          mu0 (x j) * S.
-  rewrite /S mulr_sumr; apply: eq_bigr => f Hf.
-  rewrite /gen_prod_mu (bigD1 j) //=; congr (_ * _).
-  by move: Hf; rewrite (gen_F_split Hn) => /andP [_ /eqP ->].
-(* Step B: cell(n) = S *)
-suff HB : \sum_(f | gen_F n x f) gen_prod_mu f = S
-  by rewrite HA HB.
-rewrite (bigID (fun f : {ffun _ -> _} => f j == x j)) /=.
+pose rprod (f : {ffun 'I_N -> C}) := \prod_(i < N | i != j) mu0 (f i).
 have Hfactor : forall f : {ffun 'I_N -> C},
   gen_prod_mu f = mu0 (f j) * rprod f.
-  by move=> f; rewrite /gen_prod_mu (bigD1 j).
-(* Agree half *)
-have Hagree :
-  \sum_(f | gen_F n x f && (f j == x j)) gen_prod_mu f =
-  mu0 (x j) * S.
-  transitivity (\sum_(f | gen_F n.+1 x f) gen_prod_mu f).
-    by apply: eq_bigl => f; rewrite (gen_F_split Hn).
-  exact: HA.
-(* Disagree rprod-sum = S via swap_at reindex *)
-have Hswap_rprod :
-  \sum_(f | gen_F n x f && (f j != x j)) rprod f = S.
-  rewrite /S; symmetry.
-  rewrite (reindex_inj (swap_at_inj j (x j))).
-  apply: eq_big => f.
-  - rewrite (gen_F_split Hn) (swap_at_gen_F _ (leqnn _)).
+  by move=> f; rewrite /gen_prod_mu /rprod (bigD1 j).
+(* LHS = mu0(x j) * V, with V the rprod-sum over the agree cell. *)
+have HL : \sum_(f | gen_F n.+1 x f) gen_prod_mu f =
+  mu0 (x j) * \sum_(f | gen_F n x f && (f j == x j)) rprod f.
+  rewrite (eq_bigl (fun f => gen_F n x f && (f j == x j))); last first.
+    by move=> f; rewrite (gen_F_split Hn).
+  rewrite mulr_sumr; apply: eq_bigr => f /andP [_ /eqP Hfj].
+  by rewrite Hfactor Hfj.
+(* Per-slice rprod sum is independent of c, via swap_at j c (x j). *)
+have Hslice : forall c : C,
+  \sum_(f | gen_F n x f && (f j == c)) rprod f =
+  \sum_(f | gen_F n x f && (f j == x j)) rprod f.
+  move=> c.
+  have [->|Hcne] := eqVneq c (x j); first by [].
+  have Hinj : injective (swap_at j c (x j)) := @swap_at_inj j c (x j).
+  rewrite (reindex_inj Hinj).
+  apply: eq_big.
+  - move=> g; rewrite (@swap_at_gen_F n j c (x j) x g (leqnn n)).
     congr (_ && _); rewrite ffunE eqxx.
-    case: eqP => [->|Hne]; first by rewrite eqxx.
-    by case: eqP => //= ->; rewrite eqxx.
-  - by move=> _; exact: swap_at_reduced_prod.
-(* Disagree half *)
-have Hdisagree :
-  \sum_(f | gen_F n x f && (f j != x j)) gen_prod_mu f =
-  (1 - mu0 (x j)) * S.
-  rewrite -Hswap_rprod mulrBl mul1r -Hagree.
-  rewrite [X in X - _](bigID (fun f : {ffun _ -> _} => f j == x j)) /=.
-  by rewrite addrK.
-rewrite Hagree Hdisagree -mulrDl addrCA subrr addr0 mul1r.
+    case: (g j =P c) => [-> | /eqP Hgjc].
+      exact: eq_sym.
+    case: (g j =P x j) => [_ | /eqP _].
+      by rewrite !eqxx.
+    by rewrite (negbTE Hgjc).
+  - move=> g _; rewrite /rprod.
+    by apply: eq_bigr => i Hij; rewrite swap_at_ne.
+(* Cell_n = V by partitioning over f j and applying Hslice. *)
+have HR : \sum_(f | gen_F n x f) gen_prod_mu f =
+  \sum_(f | gen_F n x f && (f j == x j)) rprod f.
+  transitivity (\sum_(c : C)
+    \sum_(f | gen_F n x f && (f j == c)) gen_prod_mu f).
+    by rewrite (partition_big (fun f : {ffun 'I_N -> C} => f j) predT) //=.
+  transitivity (\sum_(c : C) mu0 c *
+    \sum_(f | gen_F n x f && (f j == x j)) rprod f).
+    apply: eq_bigr => c _; rewrite -(Hslice c) mulr_sumr.
+    by apply: eq_bigr => f /andP [_ /eqP Hfj]; rewrite Hfactor Hfj.
+  by rewrite -mulr_suml mu0_sum1 mul1r.
+by rewrite HL HR.
 Qed.
 
 (** General cell mass formula. *)
@@ -1222,14 +711,16 @@ Lemma gen_cell_mass (n : nat) (Hn : (n <= N)%N)
   \prod_(i < N | (i < n)%N) mu0 (x i).
 Proof.
 elim: n Hn => [|n IH] Hn.
-  rewrite big_pred0; last by move=> i; rewrite ltn0.
+  have -> : \prod_(i < N | (i < 0)%N) mu0 (x i) = 1.
+    by apply: big1 => i Hi; rewrite ltn0 in Hi.
   have -> : \sum_(f | gen_F 0 x f) gen_prod_mu f =
             \sum_f gen_prod_mu f.
-    by apply: eq_bigl => f; apply/forallP => i; rewrite ltn0.
+    apply: eq_bigl => f; apply/forallP => i.
+    by apply/implyP => Hi; rewrite ltn0 in Hi.
   exact: gen_prod_mu_sum1.
 rewrite (gen_cell_mass_step Hn) (IH (ltnW Hn)).
 set j := Ordinal (n:=N) Hn.
-rewrite (bigD1 j) /=; last by [].
+rewrite [RHS](bigD1 j) /=; last exact: ltnSn.
 congr (mu0 (x j) * _); apply: eq_bigl => i.
 by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
 Qed.
@@ -1290,13 +781,22 @@ move=> Hcell; rewrite /cond_exp.
 set j := Ordinal Hn.
 have Hnum : \sum_(f | gen_F n x f) gen_prod_mu f * g (f j) =
   (\sum_(c : C) mu0 c * g c) * \sum_(f | gen_F n x f) gen_prod_mu f.
-  rewrite mulr_sumr exchange_big /=.
-  apply: eq_bigr => c _.
-  rewrite -mulr_sumr -(gen_cell_mass_coord Hn x c).
-  rewrite mulr_sumr; apply: eq_bigr => f /andP [_ /eqP ->].
-  done.
-rewrite Hnum mulrA mulfK //; last exact: gt_eqF.
-done.
+  transitivity (\sum_(c : C) g c *
+    \sum_(f | gen_F n x f && (f j == c)) gen_prod_mu f).
+    rewrite (partition_big (fun f : {ffun 'I_N -> C} => f j) predT) //=.
+    apply: eq_bigr => c _.
+    rewrite big_distrr /=.
+    apply: eq_bigr => f /andP [_ /eqP ->].
+    by rewrite mulrC.
+  transitivity (\sum_(c : C) (g c * mu0 c) *
+    \sum_(f | gen_F n x f) gen_prod_mu f).
+    apply: eq_bigr => c _; rewrite (gen_cell_mass_coord Hn x c).
+    by rewrite mulrA.
+  rewrite -big_distrl /=; congr (_ * _).
+  by apply: eq_bigr => c _; rewrite mulrC.
+rewrite Hnum.
+have Hden : \sum_(f | gen_F n x f) gen_prod_mu f != 0 by rewrite gt_eqF.
+by rewrite mulfK.
 Qed.
 
 (** E[gen_lr(f_n) | F_n] = 1 under the general model. *)
@@ -1306,7 +806,7 @@ Lemma gen_cond_exp_lr (n : nat) (Hn : (n < N)%N)
   @cond_exp R _ gen_prod_mu gen_F
     (fun f => gen_lr (f (Ordinal Hn))) n x = 1.
 Proof.
-move=> Hcell; rewrite (gen_cond_exp_free Hn x gen_lr Hcell).
+move=> Hcell; rewrite (@gen_cond_exp_free n Hn x gen_lr Hcell).
 exact: gen_lr_exp1.
 Qed.
 
@@ -1324,15 +824,15 @@ Lemma gen_M_step (n : nat) (Hn : (n < N)%N)
     (f : {ffun 'I_N -> C}) :
   gen_M n.+1 f = gen_M n f * gen_lr (f (Ordinal Hn)).
 Proof.
-rewrite /gen_M (bigD1 (Ordinal Hn)) //=.
-congr (gen_lr _ * _); apply: eq_bigl => i.
+rewrite /gen_M (bigD1 (Ordinal Hn)) //= mulrC.
+congr (_ * gen_lr _); apply: eq_bigl => i.
 by rewrite ltnS -(inj_eq val_inj) /= andbC -ltn_neqAle.
 Qed.
 
 Lemma gen_M_adapted (n : nat) (x f : {ffun 'I_N -> C}) :
   gen_F n x f -> gen_M n x = gen_M n f.
 Proof.
-move/forallP => Hxf; apply: eq_bigr => i /andP [_ Hi].
+move/forallP => Hxf; apply: eq_bigr => i Hi.
 by congr (gen_lr _); apply/eqP; exact: implyP (Hxf i) Hi.
 Qed.
 
@@ -1350,15 +850,19 @@ split.
     have Hnum : \sum_(f | gen_F n x f) gen_prod_mu f * gen_M n.+1 f =
       gen_M n x * \sum_(f | gen_F n x f) gen_prod_mu f * gen_lr (f j).
       rewrite mulr_sumr; apply: eq_bigr => f Hf.
-      by rewrite (gen_M_step Hn) mulrA -(gen_M_adapted Hf).
-    rewrite Hnum mulrA mulfK; last exact: gt_eqF.
-    have := gen_cond_exp_lr Hn x Hden.
+      by rewrite (gen_M_step Hn) mulrCA -(gen_M_adapted Hf).
+    rewrite Hnum -mulrA.
+    have := @gen_cond_exp_lr n Hn x Hden.
     by rewrite /cond_exp -/den => ->; rewrite mulr1.
-  + rewrite (@cond_exp_measurable R _ gen_prod_mu gen_F
-      (gen_M n.+1) n x gen_filtration) //.
-    * move=> f Hf; rewrite /gen_M; apply: eq_bigl => i.
-      by rewrite (ltn_leq_trans (ltn_ord i) Hn)
-                 (ltn_leq_trans (ltn_ord i) (leqW Hn)).
+  + have HM : gen_M n.+1 x = gen_M n x.
+      rewrite /gen_M; apply: eq_bigl => i.
+      by rewrite (leq_trans (ltn_ord i) Hn)
+                 (leq_trans (ltn_ord i) (leqW Hn)).
+    rewrite (@cond_exp_measurable R _ gen_prod_mu gen_F
+      (gen_M n.+1) n x gen_filtration).
+    * by rewrite HM.
+    * move=> f /forallP Hf; rewrite /gen_M; apply: eq_bigr => i _.
+      by rewrite (eqP (implyP (Hf i) (leq_trans (ltn_ord i) Hn))).
     * exact: gen_F_cell_pos.
 Qed.
 
@@ -1376,13 +880,68 @@ Lemma gen_M_ville (alpha : R) (n : nat) :
     (fun f => alpha^-1 <= gen_M n f) <= alpha.
 Proof.
 move=> Ha0 Ha1.
-exact: (@ville_ineq R _ gen_prod_mu gen_F gen_M alpha n
-  gen_filtration gen_M_supermartingale
-  gen_F_cell_pos (fun k x => gen_M_ge0 k x)
-  Ha0 Ha1 gen_M_Exp0).
+apply: (ville_ineq (F := gen_F) gen_prod_mu_ge0).
+- exact: gen_filtration.
+- exact: gen_M_supermartingale.
+- exact: gen_F_cell_pos.
+- exact: gen_M_ge0.
+- exact: Ha0.
+- exact: Ha1.
+- change (@Exp R _ gen_prod_mu (gen_M 0) <= 1).
+  exact: gen_M_Exp0.
 Qed.
 
 End GeneralBallot.
+
+(** ** Binary ballot instantiation *)
+
+(** The binary (BRAVO) ballot model is the special case of the general
+    ballot model with [C := bool], [mu0 := ballot_mu p], and
+    [gen_lr := lr p].  The binary results follow by instantiation. *)
+
+Section BinaryBallotInstantiation.
+
+Variable R : realType.
+Variable p : R.
+Hypothesis Hp : 2%:R^-1 < p.
+Hypothesis Hp1 : p < 1.
+Variable N : nat.
+Hypothesis HN : (0 < N)%N.
+
+Lemma ballot_mu_pos : forall b : bool, 0 < ballot_mu p b.
+Proof. by case; [exact: p_pos Hp | exact: q_pos Hp1]. Qed.
+
+Definition ballot_prod_mu := @gen_prod_mu R bool (ballot_mu p) N.
+Definition ballot_F := @gen_F bool N.
+Definition ballot_M := @gen_M R bool (lr p) N.
+
+Lemma ballot_M_supermartingale :
+  @supermartingale R _ ballot_prod_mu ballot_F ballot_M.
+Proof.
+rewrite /ballot_prod_mu /ballot_F /ballot_M.
+apply: gen_M_supermartingale.
+- exact: ballot_mu_pos.
+- exact: ballot_mu_sum1.
+- exact: (@lr_expectation_1 R p Hp Hp1).
+Qed.
+
+Lemma ballot_M_ville (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  @Pr R _ ballot_prod_mu
+    (fun f => alpha^-1 <= ballot_M n f) <= alpha.
+Proof.
+move=> Ha0 Ha1.
+rewrite /ballot_prod_mu /ballot_M.
+apply: gen_M_ville.
+- exact: ballot_mu_pos.
+- exact: ballot_mu_sum1.
+- by move=> b; exact: (@lr_ge0 R p Hp Hp1 b).
+- exact: (@lr_expectation_1 R p Hp Hp1).
+- exact: Ha0.
+- exact: Ha1.
+Qed.
+
+End BinaryBallotInstantiation.
 
 (** ** Null-hypothesis (wrong-outcome) Ville bound *)
 
@@ -1412,39 +971,53 @@ Lemma null_mu_pos (b : bool) : 0 < null_mu b.
 Proof. by rewrite /null_mu invr_gt0 ltr0n. Qed.
 
 Lemma null_mu_sum1 : \sum_(b : bool) null_mu b = 1.
-Proof. by rewrite big_bool /null_mu -splitr. Qed.
+Proof.
+rewrite big_bool /null_mu.
+by rewrite -[1 in RHS](subrK (2%:R^-1 : R)) half_complement.
+Qed.
 
 Definition rev_lr (b : bool) : R :=
   ballot_mu p_alt b / null_mu b.
 
 Lemma rev_lr_ge0 (b : bool) : 0 <= rev_lr b.
 Proof.
-by rewrite /rev_lr; apply: divr_ge0; [exact: ballot_mu_ge0 | exact: ltW].
+rewrite /rev_lr.
+apply: divr_ge0.
+- rewrite /ballot_mu; case: b; last by rewrite subr_ge0; exact: ltW.
+  apply: ltW; apply: (lt_trans _ Hp_gt_half); rewrite invr_gt0 ltr0n; exact: isT.
+- by rewrite /null_mu; apply: ltW; rewrite invr_gt0 ltr0n.
 Qed.
 
 Lemma rev_lr_exp1 : \sum_(b : bool) null_mu b * rev_lr b = 1.
 Proof.
 rewrite big_bool /rev_lr /=.
-rewrite !mulrCA !divff ?mulr1; last by rewrite gt_eqF // null_mu_pos.
-exact: ballot_mu_sum1.
+have Hcancel : forall b : bool,
+  null_mu b * (ballot_mu p_alt b / null_mu b) = ballot_mu p_alt b.
+  move=> b; rewrite mulrCA mulfV ?mulr1 //.
+  by rewrite gt_eqF // null_mu_pos.
+rewrite !Hcancel /ballot_mu /=.
+by rewrite addrC subrK.
 Qed.
 
 Variable N : nat.
 Hypothesis HN : (0 < N)%N.
 
 Definition null_prod_mu (f : {ffun 'I_N -> bool}) : R :=
-  @gen_prod_mu R _ null_mu N f.
+  @gen_prod_mu R bool null_mu N f.
 
-Definition null_F := @gen_F R _ N.
+Definition null_F := @gen_F bool N.
 
 Definition rev_M (n : nat) (f : {ffun 'I_N -> bool}) : R :=
-  @gen_M R _ rev_lr N n f.
+  @gen_M R bool rev_lr N n f.
 
 Lemma rev_M_supermartingale :
   @supermartingale R _ null_prod_mu null_F rev_M.
 Proof.
-exact: (@gen_M_supermartingale R _ null_mu null_mu_pos null_mu_sum1
-  rev_lr rev_lr_ge0 rev_lr_exp1 N HN).
+rewrite /null_prod_mu /null_F /rev_M.
+apply: gen_M_supermartingale.
+- exact: null_mu_pos.
+- exact: null_mu_sum1.
+- exact: rev_lr_exp1.
 Qed.
 
 Lemma rev_M_ge0 (n : nat) (f : {ffun 'I_N -> bool}) :
@@ -1452,19 +1025,22 @@ Lemma rev_M_ge0 (n : nat) (f : {ffun 'I_N -> bool}) :
 Proof. by rewrite /rev_M; apply: prodr_ge0 => i _; exact: rev_lr_ge0. Qed.
 
 Lemma null_prod_mu_ge0 (f : {ffun 'I_N -> bool}) : 0 <= null_prod_mu f.
-Proof. by rewrite /null_prod_mu; apply: gen_prod_mu_ge0. Qed.
+Proof.
+rewrite /null_prod_mu; apply: prodr_ge0 => i _.
+exact: ltW (null_mu_pos _).
+Qed.
 
 Lemma null_filtration : @filtration _ null_F.
-Proof. exact: (@gen_filtration R _ N). Qed.
+Proof. exact: (@gen_filtration bool N). Qed.
 
 Lemma null_F_cell_pos (n : nat) (x : {ffun 'I_N -> bool}) :
   0 < \sum_(y | null_F n x y) null_prod_mu y.
-Proof. exact: (@gen_F_cell_pos R _ null_mu null_mu_pos N n x). Qed.
+Proof. exact: (@gen_F_cell_pos R bool null_mu null_mu_pos N n x). Qed.
 
 Lemma rev_M_Exp0 : @Exp R _ null_prod_mu (rev_M 0) <= 1.
 Proof.
-exact: (@gen_M_Exp0 R _ null_mu null_mu_pos null_mu_sum1
-  rev_lr rev_lr_ge0 rev_lr_exp1 N).
+rewrite /null_prod_mu /rev_M.
+apply: gen_M_Exp0; exact: null_mu_sum1.
 Qed.
 
 (** Ville's inequality under the null (wrong-outcome) measure:
@@ -1474,8 +1050,15 @@ Lemma null_ville (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
   @Pr R _ null_prod_mu (fun f => alpha^-1 <= rev_M n f) <= alpha.
 Proof.
-exact: (@gen_M_ville R _ null_mu null_mu_pos null_mu_sum1
-  rev_lr rev_lr_ge0 rev_lr_exp1 N HN alpha n).
+move=> Ha0 Ha1.
+rewrite /null_prod_mu /rev_M.
+apply: gen_M_ville.
+- exact: null_mu_pos.
+- exact: null_mu_sum1.
+- exact: rev_lr_ge0.
+- exact: rev_lr_exp1.
+- exact: Ha0.
+- exact: Ha1.
 Qed.
 
 (** The per-contest false certification probability under the null is
@@ -1513,7 +1096,7 @@ move=> Ha0 Ha1; apply: degradation_from_per_contest.
 - by move=> i; apply/andP; split; [exact: ltW | exact: ltW].
 - move=> i; apply/andP; split.
   + by rewrite subr_ge0; exact: ltW.
-  + by rewrite lerBlDr lerDl; exact: ltW.
+  + exact: lexx.
 Qed.
 
 Lemma bravo_end_to_end_tight (k : nat) (alphas : 'I_k -> R) :
@@ -1540,14 +1123,15 @@ End BRAVOEndToEnd.
 
    degradation_from_per_contest:
      Composition of the per-contest BRAVO bound with the
-     multiplicative degradation theory (auditing.v).
+     multiplicative degradation theory (auditing_1.v).
      See P. B. Stark, "Risk-limiting postelection audits:
      conservative P-values from common probability inequalities,"
      IEEE Trans. Inform. Forensics Security, 4(4):1005-1014,
      2009.  DOI: 10.1109/TIFS.2009.2034190
 
-   ballot_prod_mu_sum1:
+   gen_prod_mu_sum1, gen_cell_mass:
      Product-measure normalization via bigA_distr_bigA.
+     Cell mass factorization via swap_at coordinate bijection.
      Standard; see e.g. R. Durrett, Probability: Theory and
      Examples, 5th ed., Cambridge University Press, 2019.
 
@@ -1560,3 +1144,5 @@ End BRAVOEndToEnd.
 Print Assumptions lr_expectation_1.
 Print Assumptions degradation_from_per_contest.
 Print Assumptions trivial_filtration_ok.
+Print Assumptions gen_M_ville.
+Print Assumptions ballot_M_ville.
