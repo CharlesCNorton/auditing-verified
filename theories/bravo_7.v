@@ -630,7 +630,8 @@ Lemma swap_at_eq_c2 (j : 'I_N) (c1 c2 : C)
   f j = c2 -> (swap_at j c1 c2 f) j = c1.
 Proof.
 move=> Hj; rewrite ffunE eqxx Hj.
-by case: eqP => [->|_] //; rewrite eqxx.
+have [->|_] := eqVneq c2 c1; first by [].
+by rewrite eqxx.
 Qed.
 
 Lemma swap_at_gen_F (n : nat) (j : 'I_N) (c1 c2 : C)
