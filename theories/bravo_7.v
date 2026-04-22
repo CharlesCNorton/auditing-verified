@@ -902,108 +902,63 @@ End BinaryBallotInstantiation.
 
 (** The RLA risk bound requires Ville's inequality under the
     wrong-outcome (null) hypothesis: H0 says the reported winner
-    did NOT truly win, modeled as the fair-coin distribution
-    [p = 1/2].  The reversed likelihood ratio
-    [T(b) = ballot_mu_alt(b) / ballot_mu_null(b)] is a martingale
-    under H0 and Ville gives [Pr(T >= 1/alpha | H0) <= alpha].
-    "Confirming the outcome" = [T >= 1/alpha], so this directly
-    bounds the probability of falsely certifying a wrong outcome.
+    did NOT truly win.  The reversed likelihood ratio
+    [T(c) = mu_alt(c) / mu_null(c)] is a martingale under H0 and
+    Ville gives [Pr(T >= 1/alpha | H0) <= alpha].  "Confirming the
+    outcome" = [T >= 1/alpha], so this directly bounds the
+    probability of falsely certifying a wrong outcome.
 
-    The null model is an instance of [GeneralBallot] with
-    [C := bool], [mu0 := null_mu] (fair coin), [gen_lr := rev_lr]
-    (the reversed likelihood ratio). *)
+    The null model is an instance of [GeneralBallot] with arbitrary
+    [C : finType], abstract null distribution [null_mu], abstract
+    alternative distribution [mu_alt], and reversed likelihood ratio
+    [rev_lr c := mu_alt c / null_mu c]. *)
 
-Section NullVille.
+Section AbstractNullVille.
 
 Variable R : realType.
-Variable p_alt : R.
-Hypothesis Hp_gt_half : 2%:R^-1 < p_alt.
-Hypothesis Hp_lt1 : p_alt < 1.
+Variable C : finType.
 
-Definition null_mu (b : bool) : R := 2%:R^-1.
+Variable null_mu : C -> R.
+Hypothesis null_mu_pos : forall c, 0 < null_mu c.
+Hypothesis null_mu_sum1 : \sum_(c : C) null_mu c = 1.
 
-Lemma null_mu_pos (b : bool) : 0 < null_mu b.
-Proof. by rewrite /null_mu invr_gt0 ltr0n. Qed.
+Variable mu_alt : C -> R.
+Hypothesis mu_alt_ge0 : forall c, 0 <= mu_alt c.
+Hypothesis mu_alt_sum1 : \sum_(c : C) mu_alt c = 1.
 
-Lemma null_mu_sum1 : \sum_(b : bool) null_mu b = 1.
+Definition rev_lr (c : C) : R := mu_alt c / null_mu c.
+
+Lemma rev_lr_ge0 (c : C) : 0 <= rev_lr c.
 Proof.
-rewrite big_bool /null_mu.
-by rewrite -[1 in RHS](subrK (2%:R^-1 : R)) half_complement.
+rewrite /rev_lr; apply: divr_ge0; first exact: mu_alt_ge0.
+exact: ltW (null_mu_pos _).
 Qed.
 
-Definition rev_lr (b : bool) : R :=
-  ballot_mu p_alt b / null_mu b.
-
-Lemma rev_lr_ge0 (b : bool) : 0 <= rev_lr b.
+Lemma rev_lr_exp1 : \sum_(c : C) null_mu c * rev_lr c = 1.
 Proof.
 rewrite /rev_lr.
-apply: divr_ge0.
-- rewrite /ballot_mu; case: b; last by rewrite subr_ge0; exact: ltW.
-  apply: ltW; apply: (lt_trans _ Hp_gt_half); rewrite invr_gt0 ltr0n; exact: isT.
-- by rewrite /null_mu; apply: ltW; rewrite invr_gt0 ltr0n.
-Qed.
-
-Lemma rev_lr_exp1 : \sum_(b : bool) null_mu b * rev_lr b = 1.
-Proof.
-rewrite big_bool /rev_lr /=.
-have Hcancel : forall b : bool,
-  null_mu b * (ballot_mu p_alt b / null_mu b) = ballot_mu p_alt b.
-  move=> b; rewrite mulrCA mulfV ?mulr1 //.
-  by rewrite gt_eqF // null_mu_pos.
-rewrite !Hcancel /ballot_mu /=.
-by rewrite addrC subrK.
+under eq_bigr => c _ do rewrite mulrCA mulfV ?mulr1 ?gt_eqF ?null_mu_pos //.
+exact: mu_alt_sum1.
 Qed.
 
 Variable N : nat.
 Hypothesis HN : (0 < N)%N.
 
-Definition null_prod_mu (f : {ffun 'I_N -> bool}) : R :=
-  @gen_prod_mu R bool null_mu N f.
+Definition null_prod_mu (f : {ffun 'I_N -> C}) : R :=
+  @gen_prod_mu R C null_mu N f.
 
-Definition null_F := @gen_F bool N.
+Definition null_F := @gen_F C N.
 
-Definition rev_M (n : nat) (f : {ffun 'I_N -> bool}) : R :=
-  @gen_M R bool rev_lr N n f.
-
-Lemma rev_M_supermartingale :
-  @supermartingale R {ffun 'I_N -> bool} null_prod_mu null_F rev_M.
-Proof.
-rewrite /null_prod_mu /null_F /rev_M.
-apply: gen_M_supermartingale.
-- exact: null_mu_pos.
-- exact: null_mu_sum1.
-- exact: rev_lr_exp1.
-Qed.
-
-Lemma rev_M_ge0 (n : nat) (f : {ffun 'I_N -> bool}) :
-  0 <= rev_M n f.
-Proof. by rewrite /rev_M; apply: prodr_ge0 => i _; exact: rev_lr_ge0. Qed.
-
-Lemma null_prod_mu_ge0 (f : {ffun 'I_N -> bool}) : 0 <= null_prod_mu f.
-Proof.
-rewrite /null_prod_mu; apply: prodr_ge0 => i _.
-exact: ltW (null_mu_pos _).
-Qed.
-
-Lemma null_filtration : @filtration _ null_F.
-Proof. exact: (@gen_filtration bool N). Qed.
-
-Lemma null_F_cell_pos (n : nat) (x : {ffun 'I_N -> bool}) :
-  0 < \sum_(y | null_F n x y) null_prod_mu y.
-Proof. exact: (@gen_F_cell_pos R bool null_mu null_mu_pos N n x). Qed.
-
-Lemma rev_M_Exp0 : @Exp R {ffun 'I_N -> bool} null_prod_mu (rev_M 0) <= 1.
-Proof.
-rewrite /null_prod_mu /rev_M.
-apply: gen_M_Exp0; exact: null_mu_sum1.
-Qed.
+Definition rev_M (n : nat) (f : {ffun 'I_N -> C}) : R :=
+  @gen_M R C rev_lr N n f.
 
 (** Ville's inequality under the null (wrong-outcome) measure:
     [Pr_null(rev_M n >= 1/alpha) <= alpha].
     This is [Pr(confirming wrong outcome | H0) <= alpha]. *)
-Lemma null_ville (alpha : R) (n : nat) :
+Lemma null_ville_abs (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
-  @Pr R {ffun 'I_N -> bool} null_prod_mu (fun f => alpha^-1 <= rev_M n f) <= alpha.
+  @Pr R {ffun 'I_N -> C} null_prod_mu
+    (fun f => alpha^-1 <= rev_M n f) <= alpha.
 Proof.
 move=> Ha0 Ha1.
 rewrite /null_prod_mu /rev_M.
@@ -1018,16 +973,79 @@ Qed.
 
 (** The per-contest false certification probability under the null is
     at most [alpha]. *)
-Lemma bravo_pass_prob_bound (alpha : R) (n : nat) :
+Lemma null_pass_prob_bound (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
-  1 - @Pr R {ffun 'I_N -> bool} null_prod_mu (fun f => alpha^-1 <= rev_M n f)
+  1 - @Pr R {ffun 'I_N -> C} null_prod_mu
+        (fun f => alpha^-1 <= rev_M n f)
   >= 1 - alpha.
 Proof.
 move=> Ha0 Ha1; rewrite lerD2l lerN2.
-exact: null_ville Ha0 Ha1.
+exact: null_ville_abs Ha0 Ha1.
 Qed.
 
-End NullVille.
+End AbstractNullVille.
+
+(** ** BRAVO fair-coin null instantiation *)
+
+(** Concrete instance: [C := bool], [null_mu] is the fair coin
+    [b -> 2^-1], [mu_alt] is [ballot_mu p_alt] for the alternative
+    [p_alt > 1/2]. *)
+
+Section BravoNullVille.
+
+Variable R : realType.
+Variable p_alt : R.
+Hypothesis Hp_gt_half : 2%:R^-1 < p_alt.
+Hypothesis Hp_lt1 : p_alt < 1.
+Variable N : nat.
+Hypothesis HN : (0 < N)%N.
+
+Definition bravo_null_mu (b : bool) : R := 2%:R^-1.
+
+Lemma bravo_null_mu_pos (b : bool) : 0 < bravo_null_mu b.
+Proof. by rewrite /bravo_null_mu invr_gt0 ltr0n. Qed.
+
+Lemma bravo_null_mu_sum1 : \sum_(b : bool) bravo_null_mu b = 1.
+Proof.
+rewrite big_bool /bravo_null_mu.
+by rewrite -[1 in RHS](subrK (2%:R^-1 : R)) half_complement.
+Qed.
+
+Lemma bravo_mu_alt_ge0 (b : bool) : 0 <= ballot_mu p_alt b.
+Proof.
+rewrite /ballot_mu; case: b.
+- apply: ltW; apply: (lt_trans _ Hp_gt_half); rewrite invr_gt0 ltr0n; exact: isT.
+- by rewrite subr_ge0; exact: ltW.
+Qed.
+
+(** BRAVO null Ville: instantiation of [null_ville_abs] at [C := bool]. *)
+Lemma bravo_null_ville (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  @Pr R {ffun 'I_N -> bool}
+    (null_prod_mu bravo_null_mu (N := N))
+    (fun f => alpha^-1 <= rev_M bravo_null_mu (ballot_mu p_alt) (N := N) n f)
+  <= alpha.
+Proof.
+apply: null_ville_abs.
+- exact: bravo_null_mu_pos.
+- exact: bravo_null_mu_sum1.
+- exact: bravo_mu_alt_ge0.
+- exact: ballot_mu_sum1.
+Qed.
+
+(** BRAVO per-contest false certification bound. *)
+Lemma bravo_pass_prob_bound (alpha : R) (n : nat) :
+  0 < alpha -> alpha < 1 ->
+  1 - @Pr R {ffun 'I_N -> bool}
+        (null_prod_mu bravo_null_mu (N := N))
+        (fun f => alpha^-1 <= rev_M bravo_null_mu (ballot_mu p_alt) (N := N) n f)
+  >= 1 - alpha.
+Proof.
+move=> Ha0 Ha1; rewrite lerD2l lerN2.
+exact: bravo_null_ville Ha0 Ha1.
+Qed.
+
+End BravoNullVille.
 
 (** ** Closed-form end-to-end degradation *)
 
