@@ -27,8 +27,6 @@ Open Scope ring_scope.
 
 From Auditing Require Import auditing_1 probability_4 ville_6.
 
-Strategy 1000 [cond_exp Exp].
-
 (** ** Risk-limited test abstraction *)
 
 Section RiskLimitedTest.
