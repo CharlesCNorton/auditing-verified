@@ -983,6 +983,89 @@ move=> Ha0 Ha1; rewrite lerD2l lerN2.
 exact: null_ville_abs Ha0 Ha1.
 Qed.
 
+(** ** Sequential audit: bounded-stopping-time Ville
+
+    An explicit sequential-audit specification on the null ballot
+    space: a filtration [null_F] refined ballot-by-ballot, a
+    supermartingale [rev_M] given by the reversed likelihood ratio,
+    and a user-supplied stopping rule [tau] bounded by the horizon
+    [N].  Combining [ville_stopping] with [rev_M]'s supermartingale
+    property yields the per-contest false-certification bound at
+    any such stopping time, which is precisely the hypothesis that
+    [anytime_degradation] in [auditing_1.v] requires. *)
+
+(** At any bounded stopping time [tau <= N], the probability that
+    the reversed likelihood ratio exceeds [1/alpha] at the stopping
+    time is at most [alpha] under the null. *)
+Lemma null_prod_mu_ge0 (f : {ffun 'I_N -> C}) : 0 <= null_prod_mu f.
+Proof. exact: (gen_prod_mu_ge0 null_mu_pos). Qed.
+
+Lemma null_prod_mu_sum1 : \sum_(f : {ffun 'I_N -> C}) null_prod_mu f = 1.
+Proof.
+rewrite /null_prod_mu.
+have <- : \prod_(i < N) \sum_(c : C) null_mu c =
+          \sum_(f : {ffun 'I_N -> C}) \prod_(i < N) null_mu (f i).
+  exact: bigA_distr_bigA.
+by rewrite (eq_bigr (fun _ => 1)) ?big1_eq // => i _; exact: null_mu_sum1.
+Qed.
+
+Lemma null_F_cell_pos (n : nat) (x : {ffun 'I_N -> C}) :
+  0 < \sum_(y | null_F n x y) null_prod_mu y.
+Proof. exact: (gen_F_cell_pos null_mu_pos). Qed.
+
+Lemma rev_M_ge0 (n : nat) (f : {ffun 'I_N -> C}) : 0 <= rev_M n f.
+Proof. by apply: gen_M_ge0; exact: rev_lr_ge0. Qed.
+
+Lemma null_filtration : @filtration {ffun 'I_N -> C} null_F.
+Proof. exact: gen_filtration. Qed.
+
+Lemma rev_M_supermartingale :
+  @supermartingale R {ffun 'I_N -> C} null_prod_mu null_F rev_M.
+Proof.
+rewrite /null_prod_mu /null_F /rev_M.
+apply: gen_M_supermartingale.
+- exact: null_mu_pos.
+- exact: null_mu_sum1.
+- exact: rev_lr_exp1.
+Qed.
+
+Lemma rev_M_Exp0 : @Exp R {ffun 'I_N -> C} null_prod_mu (rev_M 0) <= 1.
+Proof. rewrite /null_prod_mu /rev_M; apply: gen_M_Exp0; exact: null_mu_sum1. Qed.
+
+Lemma null_ville_stopped (alpha : R) (tau : {ffun 'I_N -> C} -> nat) :
+  0 < alpha -> alpha < 1 ->
+  stopping_time null_F tau ->
+  (forall f, (tau f <= N)%N) ->
+  @Pr R {ffun 'I_N -> C} null_prod_mu
+    (fun f => alpha^-1 <= stopped_value rev_M tau f) <= alpha.
+Proof.
+move=> Ha0 Ha1 Htau Hbound.
+apply: (ville_stopping null_prod_mu_ge0).
+- exact: null_filtration.
+- exact: rev_M_supermartingale.
+- exact: Htau.
+- exact: null_F_cell_pos.
+- exact: rev_M_ge0.
+- exact: Hbound.
+- exact: Ha0.
+- exact: Ha1.
+- exact: rev_M_Exp0.
+Qed.
+
+(** Per-contest false certification bound at a bounded stopping time. *)
+Lemma null_pass_prob_stopped (alpha : R) (tau : {ffun 'I_N -> C} -> nat) :
+  0 < alpha -> alpha < 1 ->
+  stopping_time null_F tau ->
+  (forall f, (tau f <= N)%N) ->
+  1 - @Pr R {ffun 'I_N -> C} null_prod_mu
+        (fun f => alpha^-1 <= stopped_value rev_M tau f)
+  >= 1 - alpha.
+Proof.
+move=> Ha0 Ha1 Htau Hbound.
+rewrite lerD2l lerN2.
+exact: (null_ville_stopped Ha0 Ha1 Htau Hbound).
+Qed.
+
 End AbstractNullVille.
 
 (** ** BRAVO fair-coin null instantiation *)
