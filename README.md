@@ -228,13 +228,6 @@ Browsable coqdoc output: https://charlescnorton.github.io/auditing-verified/
 
 - `coq-auditing-verified.opam` &mdash; opam package metadata
 
-**Domain aliases.** `overlap_5.v` and `dependent_3.v` re-export several
-core results from `auditing_1.v` under domain-specific names (e.g.
-`overlap_bound` wraps `false_assurance_mono`, `macro_fa_le_hetero`
-wraps `independence_worsens_assurance`).  These aliases improve
-readability in the election-auditing context without adding new
-mathematical content.
-
 ## Related formalizations
 
 The probability and martingale theory formalized here sits in a broader

@@ -1458,8 +1458,9 @@ Print Assumptions fwer_ge_fcr.
      audits," Ann. Appl. Stat., 2(2):550-581, 2008.
      DOI: 10.1214/08-AOAS161
 
-   overlap_bound, overlap_improvement, overlap_strict_improvement,
-   overlap_refinement_mono, full_overlap_bound:
+   overlap_improvement, overlap_improvement_le,
+   overlap_refinement_mono, overlap_eliminated_contests,
+   complement_chromatic_le_styles, complement_chromatic_surj:
      M. Lindeman and P. B. Stark, "A gentle introduction to
      risk-limiting audits," IEEE Security & Privacy, 10(5):42-49,
      2012.
@@ -1488,8 +1489,7 @@ Print Assumptions fwer_ge_fcr.
      Application to optimal risk allocation is implicit in the
      Šidák/Bonferroni literature.
 
-   macro_no_multiplicity, macro_uniform,
-   macro_fa_le_hetero, macro_fa_strict_le_hetero:
+   macro_no_multiplicity, macro_uniform, macro_fa_strict_le_hetero:
      P. B. Stark, "Efficient post-election audits of multiple
      contests: 2009 California tests," SSRN, 2009.
      DOI: 10.2139/ssrn.1443314

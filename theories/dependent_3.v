@@ -33,11 +33,6 @@ Variable R : realType.
    The independent model assumes joint_pass = prod p_i. Under arbitrary
    dependence, the joint pass probability p_joint satisfies only the
    marginal constraints: p_joint <= 1 - alpha_i for each contest i.
-
-   N.B. Some lemmas (e.g. [macro_fa_le_hetero], [overlap_bound])
-   are domain aliases: thin wrappers around core [auditing_1.v]
-   results, re-exported under election-auditing names for
-   readability.  They add no new mathematical content.
    No product structure is assumed.
 
    The union bound (F <= sum alpha_i) does NOT follow from marginals
@@ -337,14 +332,6 @@ rewrite H1 in Hp.
 exact: (le_trans Hp (false_assurance_mono Ha0 Ha1 Hk)).
 Qed.
 
-(** MACRO false assurance is at most the independent heterogeneous false assurance.
-    Under all-or-nothing escalation, the no-escalation probability for any
-    single contest [j] is at most [F_hetero]. *)
-Lemma macro_fa_le_hetero (k : nat) (alphas : 'I_k -> R) (j : 'I_k) :
-  (forall i, 0 <= alphas i <= 1) ->
-  alphas j <= false_assurance_hetero alphas.
-Proof. exact: independence_worsens_assurance. Qed.
-
 (** Strict MACRO bound: if the minimum risk limit is not the only value, MACRO gives strictly less. *)
 Lemma macro_fa_strict_le_hetero (k : nat)
     (alphas : 'I_k -> R) (j j' : 'I_k) :
@@ -481,8 +468,7 @@ Qed.
      mathematischen Wissenschaften, Springer-Verlag, 1970,
      pp. 210-211.  DOI: 10.1007/978-3-642-99970-3
 
-   macro_no_multiplicity, macro_uniform,
-   macro_fa_le_hetero, macro_fa_strict_le_hetero:
+   macro_no_multiplicity, macro_uniform, macro_fa_strict_le_hetero:
      P. B. Stark, "Efficient post-election audits of multiple
      contests: 2009 California tests," SSRN, 2009.
      DOI: 10.2139/ssrn.1443314
@@ -507,4 +493,3 @@ Print Assumptions independent_satisfies_marginals.
 Print Assumptions independence_worsens_assurance.
 Print Assumptions macro_no_multiplicity.
 Print Assumptions macro_uniform.
-Print Assumptions macro_fa_le_hetero.
