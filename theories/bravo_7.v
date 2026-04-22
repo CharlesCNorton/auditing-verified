@@ -62,7 +62,7 @@ Record risk_limited_test := RiskLimitedTest {
 Lemma rlt_ville (T : risk_limited_test) (n : nat)
     (Hcell : forall k (x : rlt_Omega T),
        0 < \sum_(y | rlt_F k x y) rlt_mu y) :
-  @Pr R _ (rlt_mu (r:=T)) (fun x => (rlt_alpha T)^-1 <= rlt_M n x)
+  @Pr R (rlt_Omega T) (rlt_mu (r:=T)) (fun x => (rlt_alpha T)^-1 <= rlt_M n x)
     <= rlt_alpha T.
 Proof.
 exact: (ville_ineq (rlt_mu_ge0 (r:=T)) n
@@ -155,7 +155,7 @@ by rewrite mul1r.
 Qed.
 
 (** Equivalent statement: the expectation under [Exp] equals 1. *)
-Lemma lr_Exp_eq1 : @Exp R _ ballot_mu lr = 1.
+Lemma lr_Exp_eq1 : @Exp R bool ballot_mu lr = 1.
 Proof. exact: lr_expectation_1. Qed.
 
 (** The likelihood ratio for a win is positive. *)
@@ -365,7 +365,7 @@ Lemma product_lr_Exp0_le1 (p : R) (n : nat) :
     (mu_ge0 : forall x, 0 <= mu x) (mu_sum1 : \sum_x mu x = 1)
     (outcome : Omega -> nat -> bool),
     (forall x, product_lr p (outcome x) 0 = 1) ->
-    @Exp R _ mu (fun x => product_lr p (outcome x) 0) <= 1.
+    @Exp R Omega mu (fun x => product_lr p (outcome x) 0) <= 1.
 Proof.
 move=> Hp Hp1 Omega0 mu0 Hge0 Hsum1 outcome H0.
 have -> : (fun x => product_lr p (outcome x) 0) = (fun _ => (1 : R)).
@@ -394,7 +394,7 @@ Variable outcome : Omega -> nat -> bool.
     given that [product_lr] starts at 1 for every sample point. *)
 Lemma product_lr_Exp0_le1' :
   (forall x, product_lr p (outcome x) 0 = 1) ->
-  @Exp R _ mu (fun x => product_lr p (outcome x) 0) <= 1.
+  @Exp R Omega mu (fun x => product_lr p (outcome x) 0) <= 1.
 Proof.
 move=> H0.
 have -> : (fun x => product_lr p (outcome x) 0) = (fun _ => (1 : R)).
@@ -773,7 +773,7 @@ Qed.
 Lemma gen_cond_exp_free (n : nat) (Hn : (n < N)%N)
     (x : {ffun 'I_N -> C}) (g : C -> R) :
   0 < \sum_(f | gen_F n x f) gen_prod_mu f ->
-  @cond_exp R _ gen_prod_mu gen_F
+  @cond_exp R {ffun 'I_N -> C} gen_prod_mu gen_F
     (fun f => g (f (Ordinal Hn))) n x =
   \sum_(c : C) mu0 c * g c.
 Proof.
@@ -803,7 +803,7 @@ Qed.
 Lemma gen_cond_exp_lr (n : nat) (Hn : (n < N)%N)
     (x : {ffun 'I_N -> C}) :
   0 < \sum_(f | gen_F n x f) gen_prod_mu f ->
-  @cond_exp R _ gen_prod_mu gen_F
+  @cond_exp R {ffun 'I_N -> C} gen_prod_mu gen_F
     (fun f => gen_lr (f (Ordinal Hn))) n x = 1.
 Proof.
 move=> Hcell; rewrite (@gen_cond_exp_free n Hn x gen_lr Hcell).
@@ -837,7 +837,7 @@ by congr (gen_lr _); apply/eqP; exact: implyP (Hxf i) Hi.
 Qed.
 
 Lemma gen_M_supermartingale :
-  @supermartingale R _ gen_prod_mu gen_F gen_M.
+  @supermartingale R {ffun 'I_N -> C} gen_prod_mu gen_F gen_M.
 Proof.
 split.
 - by move=> n x y Hxy; exact: gen_M_adapted Hxy.
@@ -858,7 +858,7 @@ split.
       rewrite /gen_M; apply: eq_bigl => i.
       by rewrite (leq_trans (ltn_ord i) Hn)
                  (leq_trans (ltn_ord i) (leqW Hn)).
-    rewrite (@cond_exp_measurable R _ gen_prod_mu gen_F
+    rewrite (@cond_exp_measurable R {ffun 'I_N -> C} gen_prod_mu gen_F
       (gen_M n.+1) n x gen_filtration).
     * by rewrite HM.
     * move=> f /forallP Hf; rewrite /gen_M; apply: eq_bigr => i _.
@@ -866,7 +866,7 @@ split.
     * exact: gen_F_cell_pos.
 Qed.
 
-Lemma gen_M_Exp0 : @Exp R _ gen_prod_mu (gen_M 0) <= 1.
+Lemma gen_M_Exp0 : @Exp R {ffun 'I_N -> C} gen_prod_mu (gen_M 0) <= 1.
 Proof.
 rewrite /Exp (eq_bigr (fun f => gen_prod_mu f)); last first.
   by move=> f _; rewrite gen_M_0 mulr1.
@@ -876,7 +876,7 @@ Qed.
 (** Ville's inequality for the general ballot model. *)
 Lemma gen_M_ville (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
-  @Pr R _ gen_prod_mu
+  @Pr R {ffun 'I_N -> C} gen_prod_mu
     (fun f => alpha^-1 <= gen_M n f) <= alpha.
 Proof.
 move=> Ha0 Ha1.
@@ -887,7 +887,7 @@ apply: (ville_ineq (F := gen_F) gen_prod_mu_ge0).
 - exact: gen_M_ge0.
 - exact: Ha0.
 - exact: Ha1.
-- change (@Exp R _ gen_prod_mu (gen_M 0) <= 1).
+- change (@Exp R {ffun 'I_N -> C} gen_prod_mu (gen_M 0) <= 1).
   exact: gen_M_Exp0.
 Qed.
 
@@ -916,7 +916,7 @@ Definition ballot_F := @gen_F bool N.
 Definition ballot_M := @gen_M R bool (lr p) N.
 
 Lemma ballot_M_supermartingale :
-  @supermartingale R _ ballot_prod_mu ballot_F ballot_M.
+  @supermartingale R {ffun 'I_N -> bool} ballot_prod_mu ballot_F ballot_M.
 Proof.
 rewrite /ballot_prod_mu /ballot_F /ballot_M.
 apply: gen_M_supermartingale.
@@ -927,7 +927,7 @@ Qed.
 
 Lemma ballot_M_ville (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
-  @Pr R _ ballot_prod_mu
+  @Pr R {ffun 'I_N -> bool} ballot_prod_mu
     (fun f => alpha^-1 <= ballot_M n f) <= alpha.
 Proof.
 move=> Ha0 Ha1.
@@ -1011,7 +1011,7 @@ Definition rev_M (n : nat) (f : {ffun 'I_N -> bool}) : R :=
   @gen_M R bool rev_lr N n f.
 
 Lemma rev_M_supermartingale :
-  @supermartingale R _ null_prod_mu null_F rev_M.
+  @supermartingale R {ffun 'I_N -> bool} null_prod_mu null_F rev_M.
 Proof.
 rewrite /null_prod_mu /null_F /rev_M.
 apply: gen_M_supermartingale.
@@ -1037,7 +1037,7 @@ Lemma null_F_cell_pos (n : nat) (x : {ffun 'I_N -> bool}) :
   0 < \sum_(y | null_F n x y) null_prod_mu y.
 Proof. exact: (@gen_F_cell_pos R bool null_mu null_mu_pos N n x). Qed.
 
-Lemma rev_M_Exp0 : @Exp R _ null_prod_mu (rev_M 0) <= 1.
+Lemma rev_M_Exp0 : @Exp R {ffun 'I_N -> bool} null_prod_mu (rev_M 0) <= 1.
 Proof.
 rewrite /null_prod_mu /rev_M.
 apply: gen_M_Exp0; exact: null_mu_sum1.
@@ -1048,7 +1048,7 @@ Qed.
     This is [Pr(confirming wrong outcome | H0) <= alpha]. *)
 Lemma null_ville (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
-  @Pr R _ null_prod_mu (fun f => alpha^-1 <= rev_M n f) <= alpha.
+  @Pr R {ffun 'I_N -> bool} null_prod_mu (fun f => alpha^-1 <= rev_M n f) <= alpha.
 Proof.
 move=> Ha0 Ha1.
 rewrite /null_prod_mu /rev_M.
@@ -1065,7 +1065,7 @@ Qed.
     at most [alpha]. *)
 Lemma bravo_pass_prob_bound (alpha : R) (n : nat) :
   0 < alpha -> alpha < 1 ->
-  1 - @Pr R _ null_prod_mu (fun f => alpha^-1 <= rev_M n f)
+  1 - @Pr R {ffun 'I_N -> bool} null_prod_mu (fun f => alpha^-1 <= rev_M n f)
   >= 1 - alpha.
 Proof.
 move=> Ha0 Ha1; rewrite lerD2l lerN2.
