@@ -492,18 +492,24 @@ Close Scope Q_scope.
    for use outside the proof assistant.
 
    The generated [min_k.ml] is auto-generated and overwritten on
-   each build. Native OCaml integers are used for [nat] and [Z]
-   via [ExtrOcamlNatInt] and [ExtrOcamlZInt]. The remaining bulk
-   (~500 lines) is Stdlib's positional-number parsing and [Q]
-   arithmetic infrastructure, which is unavoidable when extracting
-   [Qle_bool]-based computation. The public interface [min_k.mli]
-   is compact.
+   each build. [Z], [positive], and [N] are extracted to Zarith's
+   arbitrary-precision [Big_int_Z.big_int] via [ExtrOcamlZBigInt],
+   so [Qle_bool] comparisons remain exact at every contest count.
+   A native-int extraction for [Z] was tried earlier and silently
+   overflows for [k >= ~14] on audit-sized parameters; that is why
+   this file deliberately avoids [ExtrOcamlZInt]. [nat] stays as
+   native [int] via [ExtrOcamlNatInt] because the search counter
+   and fuel never exceed a few thousand.
 
-   Usage (after extraction):
-     min_k {qnum=1; qden=20} {qnum=99; qden=100}  (* returns 90 *)
+   Usage (after extraction, link with zarith):
+     let a = Big_int_Z.big_int_of_int 1 in
+     let b = Big_int_Z.big_int_of_int 20 in
+     let c = Big_int_Z.big_int_of_int 99 in
+     let d = Big_int_Z.big_int_of_int 100 in
+     Min_k.min_k {qnum=a; qden=b} {qnum=c; qden=d}  (* returns 90 *)
 *)
 
-From Stdlib Require Import Extraction ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZInt.
+From Stdlib Require Import Extraction ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZBigInt.
 
 Extraction Language OCaml.
 Set Extraction Output Directory ".".
