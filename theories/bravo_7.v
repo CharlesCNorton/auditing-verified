@@ -138,17 +138,9 @@ Qed.
 
 (** The likelihood ratio for a loss exceeds 1 when [p > 1/2]:
     losses are unexpected under the null and raise the test statistic. *)
-Lemma half_complement : 1 - 2%:R^-1 = 2%:R^-1 :> R.
-Proof.
-have H2 : 2%:R != (0 : R) by rewrite pnatr_eq0.
-have Hhalf : 2%:R^-1 + 2%:R^-1 = 1 :> R.
-  by apply: (mulfI H2); rewrite mulrDr !mulfV // mulr1 -mulr2n.
-by rewrite -{1}Hhalf addrK.
-Qed.
-
 Lemma lr_lose_gt1 : 1 < lr false.
 Proof.
-rewrite /lr ltr_pdivlMr ?q_pos // mul1r -half_complement.
+rewrite /lr ltr_pdivlMr ?q_pos // mul1r -(half_complement R).
 by rewrite ltrD2l ltrN2.
 Qed.
 
@@ -389,34 +381,34 @@ Variable Omega : finType.
 Variable mu : Omega -> R.
 Hypothesis mu_ge0 : forall x, 0 <= mu x.
 
-Variable F_eq : Omega -> Omega -> bool.
+Variable F : nat -> Omega -> Omega -> bool.
 
-(** If [M] is [F]-measurable and [L] is any function, then
-    [E[M * L | F](x) = M(x) * E[L | F](x)] when the cell has
-    positive mass. *)
-Lemma cond_exp_mul_measurable (M L : Omega -> R) (x : Omega) :
-  (forall y, F_eq x y -> M y = M x) ->
-  0 < \sum_(y | F_eq x y) mu y ->
-  @cond_exp R Omega mu (fun _ => F_eq) (fun y => M y * L y) 0 x =
-  M x * @cond_exp R Omega mu (fun _ => F_eq) L 0 x.
+(** If [M] is [F n]-measurable at [x] and [L] is any function, then
+    [E[M * L | F n](x) = M(x) * E[L | F n](x)] when the cell has
+    positive mass.  Stated at arbitrary level [n]. *)
+Lemma cond_exp_mul_measurable (M L : Omega -> R) (n : nat) (x : Omega) :
+  (forall y, F n x y -> M y = M x) ->
+  0 < \sum_(y | F n x y) mu y ->
+  @cond_exp R Omega mu F (fun y => M y * L y) n x =
+  M x * @cond_exp R Omega mu F L n x.
 Proof.
 move=> Hmeas Hpos.
 rewrite /cond_exp /=.
-have -> : \sum_(y | F_eq x y) mu y * (M y * L y) =
-          M x * \sum_(y | F_eq x y) mu y * L y.
+have -> : \sum_(y | F n x y) mu y * (M y * L y) =
+          M x * \sum_(y | F n x y) mu y * L y.
   rewrite mulr_sumr; apply: eq_bigr => y Hy.
   by rewrite (Hmeas _ Hy) mulrCA.
 by rewrite mulrA.
 Qed.
 
-(** The martingale step for multiplicative processes: if [M_n] is
-    [F_n]-measurable and [E[L | F_n] = 1] uniformly, then
-    [E[M_n * L | F_n] = M_n]. *)
-Lemma multiplicative_martingale_step (M L : Omega -> R) (x : Omega) :
-  (forall y, F_eq x y -> M y = M x) ->
-  0 < \sum_(y | F_eq x y) mu y ->
-  @cond_exp R Omega mu (fun _ => F_eq) L 0 x = 1 ->
-  @cond_exp R Omega mu (fun _ => F_eq) (fun y => M y * L y) 0 x = M x.
+(** The martingale step for multiplicative processes: if [M] is
+    [F n]-measurable at [x] and [E[L | F n] = 1], then
+    [E[M * L | F n] = M]. *)
+Lemma multiplicative_martingale_step (M L : Omega -> R) (n : nat) (x : Omega) :
+  (forall y, F n x y -> M y = M x) ->
+  0 < \sum_(y | F n x y) mu y ->
+  @cond_exp R Omega mu F L n x = 1 ->
+  @cond_exp R Omega mu F (fun y => M y * L y) n x = M x.
 Proof.
 move=> Hmeas Hpos HL1.
 by rewrite cond_exp_mul_measurable // HL1 mulr1.

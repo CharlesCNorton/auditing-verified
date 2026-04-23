@@ -9,4 +9,5 @@ theories/bravo_7.v
 theories/continuity_8.v
 theories/concrete_9.v
 theories/plurality_3.v
+theories/macro_10.v
 theories/all.v

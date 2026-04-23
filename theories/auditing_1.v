@@ -118,6 +118,15 @@ have H := expR_gt1Dx Hln1; rewrite (lnK Hpos) in H.
 by rewrite -(ltrD2l 1) addrCA subrr addr0.
 Qed.
 
+(** [1 - 1/2 = 1/2] in any [realType].  General utility. *)
+Lemma half_complement (R : realType) : 1 - 2%:R^-1 = 2%:R^-1 :> R.
+Proof.
+have H2 : 2%:R != (0 : R) by rewrite pnatr_eq0.
+have Hhalf : 2%:R^-1 + 2%:R^-1 = 1 :> R.
+  by apply: (mulfI H2); rewrite mulrDr !mulfV // mulr1 -mulr2n.
+by rewrite -{1}Hhalf addrK.
+Qed.
+
 (** ** Algebraic degradation theory *)
 
 Section RiskLimitingAudit.
@@ -472,6 +481,45 @@ suff Hdecomp : y * y ^+ k - x * x ^+ k =
 by rewrite mulrBr [in RHS]mulrBl addrA addrNK.
 Qed.
 
+(** Sharp power-difference bound: [y^(k+1) - x^(k+1) <= (k+1) * y^k * (y - x)]
+    when [0 <= x <= y <= 1].  The factor [y^k] replaces the constant [1]
+    used in [pow_diff_bound]; at [y = 1] the two bounds agree. *)
+Lemma pow_diff_bound_sharp (x y : R) (k : nat) :
+  0 <= x -> x <= y -> y <= 1 ->
+  y ^+ k.+1 - x ^+ k.+1 <= k.+1%:R * y ^+ k * (y - x).
+Proof.
+move=> Hx0 Hxy Hy1.
+have Hy0 := le_trans Hx0 Hxy.
+have Hdiff : 0 <= y - x by rewrite subr_ge0.
+elim: k => [|k IH].
+  rewrite !expr1 expr0 mulr1 mulr_natl mulr1n.
+  exact: lexx.
+have Hxk1_le_yk1 : x ^+ k.+1 <= y ^+ k.+1.
+  by apply: lerXn2r => //; rewrite nnegrE.
+have Hyk1_ge0 : 0 <= y ^+ k.+1 := exprn_ge0 k.+1 Hy0.
+have Hdecomp : y ^+ k.+2 - x ^+ k.+2 =
+  y * (y ^+ k.+1 - x ^+ k.+1) + (y - x) * x ^+ k.+1.
+  by rewrite !exprS mulrBr mulrBl addrA addrNK.
+rewrite Hdecomp.
+have H1eq : y * (k.+1%:R * y ^+ k * (y - x)) = k.+1%:R * y ^+ k.+1 * (y - x).
+  transitivity ((y * k.+1%:R) * y ^+ k * (y - x));
+    first by rewrite !mulrA.
+  transitivity ((k.+1%:R * y) * y ^+ k * (y - x));
+    first by rewrite (mulrC y k.+1%:R).
+  have step3 : (k.+1%:R * y) * y ^+ k = k.+1%:R * y ^+ k.+1.
+    by rewrite -mulrA -exprS.
+  by rewrite step3.
+have H1 : y * (y ^+ k.+1 - x ^+ k.+1) <= k.+1%:R * y ^+ k.+1 * (y - x).
+  by rewrite -H1eq; apply: ler_wpM2l.
+have H2 : (y - x) * x ^+ k.+1 <= (y - x) * y ^+ k.+1.
+  exact: ler_wpM2l.
+apply: (le_trans (lerD H1 H2)).
+rewrite [(y - x) * y ^+ k.+1]mulrC -mulrDl.
+have -> : k.+1%:R * y ^+ k.+1 + y ^+ k.+1 = k.+2%:R * y ^+ k.+1.
+  by rewrite -(natr1 k.+1) mulrDl mul1r.
+exact: lexx.
+Qed.
+
 (** [(c + p) * (1 - p) <= c] for [c >= 1] and [0 <= p]. *)
 Lemma mul_sub1_le (c p : R) :
   1 <= c -> 0 <= p ->
@@ -483,6 +531,27 @@ have Hkey : p * (1 - p) <= c * p.
   by rewrite lerBlDr; apply: (le_trans Hc1); rewrite lerDl.
 have Heq : c = c * (1 - p) + c * p by rewrite -mulrDr subrK mulr1.
 rewrite mulrDl [X in _ <= X]Heq; apply: lerD; [exact: lexx | exact: Hkey].
+Qed.
+
+(** Sharp Lipschitz modulus for false assurance:
+    [F(alpha2, k) - F(alpha1, k) <= k * (1 - alpha1)^(k-1) * (alpha2 - alpha1)].
+    Tight as [alpha1, alpha2 -> 0] by the mean-value theorem. *)
+Lemma false_assurance_lipschitz_sharp (alpha1 alpha2 : R) (k : nat) :
+  0 <= alpha1 -> alpha1 <= alpha2 -> alpha2 <= 1 ->
+  false_assurance alpha2 k.+1 - false_assurance alpha1 k.+1 <=
+    k.+1%:R * (1 - alpha1) ^+ k * (alpha2 - alpha1).
+Proof.
+move=> Ha1 Hle Ha2.
+rewrite /false_assurance.
+have -> : (1 - (1 - alpha2) ^+ k.+1) - (1 - (1 - alpha1) ^+ k.+1) =
+          (1 - alpha1) ^+ k.+1 - (1 - alpha2) ^+ k.+1.
+  by rewrite opprD opprK addrACA subrr add0r addrC.
+have -> : alpha2 - alpha1 = (1 - alpha1) - (1 - alpha2).
+  by rewrite opprD opprK addrACA subrr add0r addrC.
+apply: pow_diff_bound_sharp.
+- by rewrite subr_ge0.
+- by rewrite lerD2l lerN2.
+- by rewrite lerBlDr lerDl.
 Qed.
 
 (** Lipschitz continuity: [F(alpha2, k) - F(alpha1, k) <= k * (alpha2 - alpha1)]. *)

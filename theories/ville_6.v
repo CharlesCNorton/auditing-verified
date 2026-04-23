@@ -241,7 +241,10 @@ move=> Htrans Hsym Hxy; apply: eq_bigl => z; apply/idP/idP.
 - by exact: (Htrans y).
 Qed.
 
-(** Tower property: [E[E[X | F n]] = E[X]].
+(** Tower property at a single level: [E[E[X | F n]] = E[X]].  The
+    equivalence-relation structure at [n] alone suffices; the
+    refinement axiom of a forward filtration is not needed, so this
+    form applies to forward and reverse filtrations alike.
 
     Proof sketch:
     1. Rewrite the LHS as a double sum over (x, y) pairs where
@@ -253,13 +256,15 @@ Qed.
     4. Flatten the RHS the same way, then apply [reindex_inj] with
        the pair-swap bijection [(x,y) -> (y,x)] to match the two
        flattened sums. *)
-Lemma tower_property (F : nat -> Omega -> Omega -> bool)
+Lemma tower_property_level (F : nat -> Omega -> Omega -> bool)
     (X : Omega -> R) (n : nat) :
-  filtration F ->
+  (forall k, reflexive (F k)) ->
+  (forall k, symmetric (F k)) ->
+  (forall k, transitive (F k)) ->
   (forall x, 0 < \sum_(y | F n x y) mu y) ->
   Exp (cond_exp F X n) = Exp X.
 Proof.
-move=> [Hrefl Hsym Htrans _] Hcell.
+move=> Hrefl Hsym Htrans Hcell.
 rewrite /Exp /cond_exp.
 have Hpred : forall (G : Omega -> R),
   \sum_(x : Omega) G x = \sum_(x | predT x) G x
@@ -290,6 +295,85 @@ transitivity (\sum_(y | predT y) \sum_(x | F n x y)
   by rewrite divff // gt_eqF.
 rewrite (pair_big_dep predT (fun y x => F n x y)) /=.
 by rewrite (reindex_inj Hinj) /=.
+Qed.
+
+(** Tower property for a forward filtration.  Discharges [filtration F]
+    to extract reflexivity, symmetry, and transitivity at level [n],
+    then applies [tower_property_level]. *)
+Lemma tower_property (F : nat -> Omega -> Omega -> bool)
+    (X : Omega -> R) (n : nat) :
+  filtration F ->
+  (forall x, 0 < \sum_(y | F n x y) mu y) ->
+  Exp (cond_exp F X n) = Exp X.
+Proof. by move=> [Hrefl Hsym Htrans _]; exact: tower_property_level. Qed.
+
+(** ** Linearity of conditional expectation and combined (super)martingales *)
+
+(** Conditional expectation scales through a constant factor. *)
+Lemma cond_exp_scalar_mul (F : nat -> Omega -> Omega -> bool)
+    (X : Omega -> R) (c : R) (n : nat) (x : Omega) :
+  cond_exp F (fun y => c * X y) n x = c * cond_exp F X n x.
+Proof.
+rewrite /cond_exp.
+rewrite (eq_bigr (fun y => c * (mu y * X y))); last first.
+  by move=> y _; rewrite mulrCA.
+by rewrite -mulr_sumr -mulrA.
+Qed.
+
+(** Conditional expectation distributes over pointwise addition. *)
+Lemma cond_exp_add (F : nat -> Omega -> Omega -> bool)
+    (X Y : Omega -> R) (n : nat) (x : Omega) :
+  cond_exp F (fun y => X y + Y y) n x =
+    cond_exp F X n x + cond_exp F Y n x.
+Proof.
+rewrite /cond_exp -mulrDl; congr (_ / _).
+rewrite -big_split /=.
+by apply: eq_bigr => y _; rewrite mulrDr.
+Qed.
+
+(** Non-negative scalar multiplication preserves the supermartingale property. *)
+Lemma supermartingale_scalar_mul (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (c : R) :
+  0 <= c -> supermartingale F M ->
+  supermartingale F (fun n x => c * M n x).
+Proof.
+move=> Hc [Hadapt Hsup]; split.
+- by move=> n x y Hxy; rewrite (Hadapt n x y Hxy).
+- move=> n x; rewrite cond_exp_scalar_mul.
+  exact: ler_wpM2l.
+Qed.
+
+(** Pointwise addition preserves the supermartingale property. *)
+Lemma supermartingale_sum (F : nat -> Omega -> Omega -> bool)
+    (M1 M2 : nat -> Omega -> R) :
+  supermartingale F M1 -> supermartingale F M2 ->
+  supermartingale F (fun n x => M1 n x + M2 n x).
+Proof.
+move=> [H1a H1s] [H2a H2s]; split.
+- by move=> n x y Hxy; rewrite (H1a n x y Hxy) (H2a n x y Hxy).
+- by move=> n x; rewrite cond_exp_add; apply: lerD; [exact: H1s | exact: H2s].
+Qed.
+
+(** Scalar multiplication preserves the martingale property (any [c]). *)
+Lemma martingale_scalar_mul (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (c : R) :
+  martingale F M ->
+  martingale F (fun n x => c * M n x).
+Proof.
+move=> [Hadapt Hmart]; split.
+- by move=> n x y Hxy; rewrite (Hadapt n x y Hxy).
+- by move=> n x; rewrite cond_exp_scalar_mul Hmart.
+Qed.
+
+(** Pointwise addition preserves the martingale property. *)
+Lemma martingale_sum (F : nat -> Omega -> Omega -> bool)
+    (M1 M2 : nat -> Omega -> R) :
+  martingale F M1 -> martingale F M2 ->
+  martingale F (fun n x => M1 n x + M2 n x).
+Proof.
+move=> [H1a H1m] [H2a H2m]; split.
+- by move=> n x y Hxy; rewrite (H1a n x y Hxy) (H2a n x y Hxy).
+- by move=> n x; rewrite cond_exp_add H1m H2m.
 Qed.
 
 (** A supermartingale has non-increasing expected value at each step. *)
@@ -507,6 +591,99 @@ have Heq0 : stopped_process M tau 0 = M 0.
   by apply: boolp.funext => x; rewrite /stopped_process minn0.
 rewrite HeqN -Heq0.
 exact: @supermartingale_Exp_le0 F (stopped_process M tau) N HF Hstopmg Hcell.
+Qed.
+
+(** ** Martingale optional stopping: equality *)
+
+(** A martingale has constant expectation at each step. *)
+Lemma martingale_Exp_step (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  filtration F ->
+  martingale F M ->
+  (forall x, 0 < \sum_(y | F n x y) mu y) ->
+  Exp (M n.+1) = Exp (M n).
+Proof.
+move=> HF [Hadapt Hmart] Hcell.
+rewrite -(tower_property (M n.+1) HF Hcell) /Exp.
+by apply: eq_bigr => x _; rewrite Hmart.
+Qed.
+
+(** A martingale's expectation is constant at [E[M_0]] for all [n]. *)
+Lemma martingale_Exp_const (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n : nat) :
+  filtration F ->
+  martingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  Exp (M n) = Exp (M 0).
+Proof.
+move=> HF Hmart Hcell; elim: n => [//|n IH].
+by rewrite (@martingale_Exp_step F M n HF Hmart (Hcell n)).
+Qed.
+
+(** Stopping a martingale at a stopping time yields a martingale.
+    Same case analysis on [tau x <= n] as for supermartingales;
+    equalities replace inequalities at the one step that uses the
+    martingale identity. *)
+Lemma stopped_process_martingale (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (tau : Omega -> nat) :
+  filtration F -> martingale F M -> stopping_time F tau ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  martingale F (stopped_process M tau).
+Proof.
+move=> HF [Hadapt Hmart] Hstop Hcell; split.
+- move=> n x y Hxy; rewrite /stopped_process /=.
+  case: (leqP (tau x) n) => Htx.
+  + have Hty : (tau y <= n)%N by rewrite -(Hstop n x y Hxy).
+    have Heq := stopping_time_cell_eq HF Hstop Hxy Htx Hty.
+    rewrite Heq.
+    have -> : minn (tau y) n = tau y by apply/minn_idPl.
+    by apply: Hadapt; exact: @filtration_mono F (tau y) n x y HF Hty Hxy.
+  + have Hty : (n < tau y)%N.
+      by rewrite ltnNge -(Hstop n x y Hxy) -ltnNge.
+    have -> : minn (tau y) n = n by apply/minn_idPr; exact: ltnW.
+    by apply: Hadapt.
+- move=> n x; rewrite /stopped_process /=.
+  case: (leqP (tau x) n) => Htx.
+  + have Hext : forall y, F n x y ->
+      M (minn (tau y) n.+1) y = M (tau x) y.
+      move=> y Hxy.
+      have Hty : (tau y <= n)%N by rewrite -(Hstop n x y Hxy).
+      have Heq := stopping_time_cell_eq HF Hstop Hxy Htx Hty.
+      rewrite Heq.
+      have -> : minn (tau y) n.+1 = tau y by apply/minn_idPl; exact: leqW.
+      done.
+    have Hmeas : forall y, F n x y -> M (tau x) y = M (tau x) x.
+      by move=> y0 Hxy0; apply/esym/Hadapt;
+         exact: @filtration_mono F (tau x) n x y0 HF Htx Hxy0.
+    by rewrite (cond_exp_ext Hext) (cond_exp_measurable HF Hmeas (Hcell n x)).
+  + have Hext : forall y, F n x y ->
+      M (minn (tau y) n.+1) y = M n.+1 y.
+      move=> y Hxy.
+      have Hty : (n < tau y)%N.
+        by rewrite ltnNge -(Hstop n x y Hxy) -ltnNge.
+      have -> : minn (tau y) n.+1 = n.+1 by apply/minn_idPr.
+      done.
+    by rewrite (cond_exp_ext Hext); exact: Hmart.
+Qed.
+
+(** Optional stopping for a martingale: [E[M_tau] = E[M_0]] at any
+    bounded stopping time.  Equality, not just [<=]. *)
+Lemma martingale_optional_stopping_eq (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (tau : Omega -> nat) (N : nat) :
+  filtration F -> martingale F M -> stopping_time F tau ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  (forall x, (tau x <= N)%N) ->
+  Exp (stopped_value M tau) = Exp (M 0).
+Proof.
+move=> HF Hmart Hstop Hcell Hbound.
+have Hstopmart := stopped_process_martingale HF Hmart Hstop Hcell.
+have HeqN : stopped_value M tau = stopped_process M tau N.
+  apply: boolp.funext => x; rewrite /stopped_value /stopped_process.
+  by have -> : minn (tau x) N = tau x by apply/minn_idPl; exact: Hbound.
+have Heq0 : stopped_process M tau 0 = M 0.
+  by apply: boolp.funext => x; rewrite /stopped_process minn0.
+rewrite HeqN -Heq0.
+exact: (@martingale_Exp_const F (stopped_process M tau) N HF Hstopmart Hcell).
 Qed.
 
 (** Ville's inequality applied to stopped values: [Pr(M_tau >= 1/alpha) <= alpha]. *)
@@ -783,51 +960,6 @@ Definition reverse_filtration (F : nat -> Omega -> Omega -> bool) :=
       (forall n, symmetric (F n)),
       (forall n, transitive (F n)) &
       (forall n x y, F n x y -> F n.+1 x y) ].
-
-(** Tower property at a single level. The proof of [tower_property] only
-    uses the equivalence-relation structure at that level, not the
-    refinement condition, so it applies equally to forward and reverse
-    filtrations. *)
-Lemma tower_property_level (F : nat -> Omega -> Omega -> bool)
-    (X : Omega -> R) (n : nat) :
-  (forall k, reflexive (F k)) ->
-  (forall k, symmetric (F k)) ->
-  (forall k, transitive (F k)) ->
-  (forall x, 0 < \sum_(y | F n x y) mu y) ->
-  Exp (cond_exp F X n) = Exp X.
-Proof.
-move=> Hrefl Hsym Htrans Hcell.
-rewrite /Exp /cond_exp.
-have Hpred : forall (G : Omega -> R),
-  \sum_(x : Omega) G x = \sum_(x | predT x) G x
-  by move=> G; rewrite big_mkcond /=.
-rewrite !Hpred.
-have Hbody : forall x,
-  mu x * ((\sum_(y | F n x y) mu y * X y) / \sum_(y | F n x y) mu y) =
-  \sum_(y | F n x y) mu y * X y * (mu x / \sum_(z | F n x z) mu z).
-  move=> x; rewrite /cond_exp.
-  transitivity ((\sum_(y | F n x y) mu y * X y) *
-    (mu x / \sum_(y | F n x y) mu y)); first by rewrite mulrCA.
-  by rewrite mulr_suml.
-transitivity (\sum_(x | predT x) \sum_(y | F n x y)
-  mu y * X y * (mu x / \sum_(z | F n x z) mu z)).
-  by apply: eq_bigr => x _; exact: Hbody.
-have Hinj : injective (fun p : Omega * Omega => (p.2, p.1))
-  by move=> [a b] [c d] /= [-> ->].
-rewrite (pair_big_dep predT (F n)) /=.
-symmetry.
-transitivity (\sum_(y | predT y) \sum_(x | F n x y)
-  mu y * X y * (mu x / \sum_(z | F n x z) mu z)).
-  apply: eq_bigr => y _; rewrite -[LHS]mulr1 -mulr_sumr; congr (_ * _).
-  under eq_bigr => x Hxy do
-    rewrite (equiv_class_sum (F_eq := F n) (Htrans n) (Hsym n) Hxy).
-  rewrite -mulr_suml.
-  have -> : \sum_(j | F n j y) mu j = \sum_(z | F n y z) mu z
-    by apply: eq_bigl => z; rewrite (Hsym n).
-  by rewrite divff // gt_eqF.
-rewrite (pair_big_dep predT (fun y x => F n x y)) /=.
-by rewrite (reindex_inj Hinj) /=.
-Qed.
 
 (** [reverse_supermartingale F M]: [M] is adapted to the reverse
     filtration [F], and the conditional expectation of [M n] given the

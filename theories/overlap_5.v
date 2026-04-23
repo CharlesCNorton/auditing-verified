@@ -128,6 +128,37 @@ rewrite overlap_improvement //.
 by rewrite /false_assurance mulrBr mulr1 -exprD subnKC.
 Qed.
 
+(** Strict version of [overlap_improvement_le]: for [0 < alpha < 1],
+    [2 <= k], and [n < k], the [(k - n) * alpha] bound is strictly loose. *)
+Lemma overlap_improvement_le_strict (alpha : R) :
+  0 < alpha -> alpha < 1 -> (2 <= k)%N -> (n < k)%N ->
+  false_assurance alpha k - false_assurance alpha n <
+  (k - n)%:R * alpha.
+Proof.
+move=> Ha0 Ha1 Hk2 Hnk.
+have H1a_pos : 0 < 1 - alpha by rewrite subr_gt0.
+have H1a_lt1 : 1 - alpha < 1 by rewrite ltrBlDr ltrDl.
+rewrite (overlap_eliminated_contests (ltW Ha0) (ltW Ha1) (ltnW Hnk)).
+case: n Hnk => [_|n' Hn'k].
+- rewrite expr0 mul1r subn0.
+  exact: union_bound_strict.
+- have Hkn_pos : (0 < k - n'.+1)%N by rewrite subn_gt0.
+  have Hfa_pos : 0 < false_assurance alpha (k - n'.+1).
+    rewrite /false_assurance subr_gt0.
+    have := pow_lt1_strict_anti H1a_pos H1a_lt1 Hkn_pos.
+    by rewrite expr0.
+  have Hub : false_assurance alpha (k - n'.+1) <= (k - n'.+1)%:R * alpha.
+    exact: union_bound (ltW Ha0) (ltW Ha1).
+  have Hn_pow_lt1 : (1 - alpha) ^+ n'.+1 < 1.
+    have := pow_lt1_strict_anti H1a_pos H1a_lt1 (ltn0Sn n').
+    by rewrite expr0.
+  apply: (@lt_le_trans _ _ (false_assurance alpha (k - n'.+1))).
+  + rewrite -subr_gt0 -{1}(mul1r (false_assurance alpha (k - n'.+1))) -mulrBl.
+    apply: mulr_gt0; last by [].
+    by rewrite subr_gt0.
+  + exact: Hub.
+Qed.
+
 (** Under positive dependence with [n] ballot styles, the style-level
     false assurance bounds the actual false assurance. *)
 Lemma overlap_positive_dep_le_styles (alpha : R) (p_joint : R) :
