@@ -452,6 +452,55 @@ move=> j.
 by apply: two_pt_marginal.
 Qed.
 
+(** ** Fréchet-Hoeffding upper bound for marginal-compatible measures *)
+
+(** For any marginal-compatible joint distribution on
+    [{ffun 'I_k -> bool}], the probability of the all-pass event is
+    bounded by the marginal of any single contest: [Pr(all pass) <=
+    Pr(f j)] for every [j].  This is the Fréchet-Hoeffding upper
+    bound: joint probability cannot exceed the smallest marginal. *)
+Lemma frechet_upper_pointwise
+    (R : realType) (k : nat)
+    (mu : {ffun 'I_k -> bool} -> R)
+    (Hmu_ge0 : forall f, 0 <= mu f)
+    (j : 'I_k) :
+  @Pr R _ mu (fun f : {ffun 'I_k -> bool} => [forall j', f j']) <=
+  @Pr R _ mu (fun f : {ffun 'I_k -> bool} => f j).
+Proof.
+apply: Pr_mono; first exact: Hmu_ge0.
+by move=> f /forallP H; exact: H.
+Qed.
+
+(** Equivalent form: under marginal compatibility [P(pass_j) = 1 - alpha_j],
+    [Pr(all pass) <= 1 - alpha_j] for every j.  Taking j = argmax gives
+    the sharpest upper bound [Pr(all pass) <= 1 - max_j alpha_j]. *)
+Lemma frechet_upper_marginal
+    (R : realType) (k : nat) (alphas : 'I_k -> R)
+    (mu : {ffun 'I_k -> bool} -> R)
+    (Hmu_ge0 : forall f, 0 <= mu f)
+    (j : 'I_k) :
+  @Pr R _ mu (fun f => f j) = 1 - alphas j ->
+  @Pr R _ mu (fun f : {ffun 'I_k -> bool} => [forall j', f j']) <=
+  1 - alphas j.
+Proof.
+move=> Hmarg.
+by rewrite -Hmarg; apply: frechet_upper_pointwise.
+Qed.
+
+(** The two-point distribution at [t = max alpha_j] is extremal: it
+    attains the Fréchet upper bound [1 - t] with equality. *)
+Lemma two_pt_extremal
+    (R : realType) (k : nat) (alphas : 'I_k -> R) (t : R) (j_max : 'I_k) :
+  (0 < k)%N -> 0 <= t -> t <= 1 ->
+  alphas j_max = t ->
+  @Pr R _ (@two_pt_mu R k t)
+    (fun f : {ffun 'I_k -> bool} => [forall j, f j]) = 1 - alphas j_max.
+Proof.
+move=> Hk Ht0 Ht1 Hjmax.
+rewrite Hjmax /Pr.
+exact: (@two_pt_upper_achieves_at_t R k t Hk Ht0 Ht1).
+Qed.
+
 (** ** Axiom audit for probability lemmas *)
 
 Print Assumptions two_pt_mu_sum1.
