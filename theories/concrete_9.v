@@ -396,6 +396,37 @@ rewrite QR_mul_pos [QR (Qmake 99 100) * _]QR_mul_pos.
 by apply: QR_le; vm_compute; discriminate.
 Qed.
 
+(** Maricopa 80-group [realType] transfer: at [alpha = 1/20] with 80
+    independent groups, [(1 - alpha) ^+ 80 <= 17/1000] in any
+    [realType].  Transfers [maricopa_80_bound] through the [QR]
+    bridge. *)
+Lemma bridge_maricopa_80 :
+  (1 - ratr alpha_r) ^+ 80 <= QR (Qmake 17 1000) :> R.
+Proof.
+have Hrat1 : 1 - alpha_r = 19%:R / 20%:R :> rat by vm_compute.
+have Hconv : QR (Qmake 19 20) = 1 - ratr alpha_r :> R.
+  by rewrite -(GRing.rmorph1 ratr) -(rmorphB ratr) Hrat1 /QR /int_of_Z /ratr /=.
+rewrite -Hconv -(QR_Qpower_pos 19 20 80).
+exact/QR_le_pos/maricopa_80_bound.
+Qed.
+
+(** Exact form of [bridge_hetero_3_product]:
+    [(99/100)(19/20)(9/10) = 16929/20000]. *)
+Lemma bridge_hetero_3_product_exact :
+  QR (Qmake 99 100) * (QR (Qmake 19 20) * QR (Qmake 9 10)) =
+  QR (Qmake 16929 20000) :> R.
+Proof. by rewrite QR_mul_pos [QR (Qmake 99 100) * _]QR_mul_pos. Qed.
+
+(** [(99/100)(19/20)(9/10) < 17/20] strict, with explicit gap
+    [17/20 - 16929/20000 = 71/20000]. *)
+Lemma bridge_hetero_3_product_strict :
+  QR (Qmake 99 100) * (QR (Qmake 19 20) * QR (Qmake 9 10)) <
+  QR (Qmake 17 20) :> R.
+Proof.
+rewrite bridge_hetero_3_product_exact.
+by apply: QR_lt; vm_compute.
+Qed.
+
 End Bridge.
 
 (* Prevent the kernel from unfolding QR in downstream files. *)
@@ -438,6 +469,15 @@ Eval vm_compute in min_k (Qmake 1 20) (Qmake 99 100).
 Lemma min_k_is_90 :
   min_k (Qmake 1 20) (Qmake 99 100) = 90%N.
 Proof. by vm_compute. Qed.
+
+(** The computable [min_k] output realizes the [realType] threshold:
+    at the minimum contest count [min_k (1/20) (99/100) = 90], the
+    analytic false-assurance bound [delta <= false_assurance alpha k]
+    holds in any [realType] for all [k] at or above the witness. *)
+Lemma min_k_realizes_threshold_90 (R : realType) (k : nat) :
+  leq (min_k (Qmake 1 20) (Qmake 99 100)) k ->
+  (@ratr R delta_r <= @false_assurance R (ratr alpha_r) k)%R.
+Proof. rewrite min_k_is_90; exact: concrete_threshold_90. Qed.
 
 (** [search_k] returns immediately when the accumulator meets the threshold. *)
 Lemma search_k_hit (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :

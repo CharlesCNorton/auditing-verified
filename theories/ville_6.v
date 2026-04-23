@@ -858,6 +858,43 @@ move=> Hsub Hge0 Hc.
 exact: (@markov_ineq (M n) _ Hc (Hge0 n)).
 Qed.
 
+(** Iterated expectation monotonicity for submartingales: [E[M_n]] is
+    non-decreasing in [n]. *)
+Lemma submartingale_Exp_le (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (n m : nat) :
+  filtration F ->
+  submartingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  (n <= m)%N -> Exp (M n) <= Exp (M m).
+Proof.
+move=> HF Hsub Hcell Hnm.
+have [d ->] : exists d, m = (n + d)%N.
+  by exists (m - n)%N; rewrite subnKC.
+elim: d => [|d IH]; first by rewrite addn0.
+by rewrite addnS; apply: le_trans IH _;
+  exact: (@submartingale_Exp_mono F M (n + d)%N HF Hsub (Hcell _)).
+Qed.
+
+(** Doob's inequality for a non-negative submartingale:
+    [c * Pr(M_n >= c) <= E[M_m]] at any [m >= n].  The running-max
+    form is the classical Doob inequality; this point form is the
+    direct Markov consequence strengthened via submartingale
+    expectation monotonicity. *)
+Lemma submartingale_doob_inequality (F : nat -> Omega -> Omega -> bool)
+    (M : nat -> Omega -> R) (c : R) (n m : nat) :
+  filtration F ->
+  submartingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  (forall k x, 0 <= M k x) ->
+  0 < c ->
+  (n <= m)%N ->
+  c * @Pr R _ mu (fun x => c <= M n x) <= Exp (M m).
+Proof.
+move=> HF Hsub Hcell Hge0 Hc Hnm.
+apply: (le_trans (@submartingale_markov F M c n Hsub Hge0 Hc)).
+exact: (@submartingale_Exp_le F M n m HF Hsub Hcell Hnm).
+Qed.
+
 (** ** Telescoping expectation identity *)
 
 (** Telescoping: the expectation difference across [n] steps decomposes as

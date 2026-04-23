@@ -377,6 +377,37 @@ Qed.
 
 End TwoPointFrechet.
 
+(** ** Measure-theoretic dependent bridge *)
+
+(** For any risk limits [alphas] dominated by a common ceiling [t],
+    the two-point distribution is an explicit measure on
+    [{ffun 'I_k -> bool}] whose marginals are each at most
+    [1 - alphas j] and whose false-assurance is exactly [t].
+    Upgrades [dep_concrete_bridge] from algebraic existence to an
+    explicit probability measure. *)
+Lemma dep_concrete_bridge_measure
+    (R : realType) (k : nat) (alphas : 'I_k -> R) (t : R) :
+  (0 < k)%N ->
+  (forall j : 'I_k, alphas j <= t) -> 0 <= t -> t <= 1 ->
+  (forall f : {ffun 'I_k -> bool}, 0 <= @two_pt_mu R k t f) /\
+  \sum_(f : {ffun 'I_k -> bool}) @two_pt_mu R k t f = 1 /\
+  (forall j, \sum_(f : {ffun 'I_k -> bool} | f j)
+               @two_pt_mu R k t f <= 1 - alphas j) /\
+  1 - \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+        @two_pt_mu R k t f = t.
+Proof.
+move=> Hk Hle Ht0 Ht1.
+split; [by move=> f; apply: two_pt_mu_ge0 |].
+split; [by apply: two_pt_mu_sum1 |].
+split.
+- move=> j.
+  have Hmarg : \sum_(f : {ffun 'I_k -> bool} | f j)
+                 @two_pt_mu R k t f = 1 - t by apply: two_pt_marginal.
+  rewrite Hmarg.
+  by rewrite lerD2l lerN2; apply: Hle.
+- by apply: two_pt_false_assurance.
+Qed.
+
 (** ** Axiom audit for probability lemmas *)
 
 Print Assumptions two_pt_mu_sum1.

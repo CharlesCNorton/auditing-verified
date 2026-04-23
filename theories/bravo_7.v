@@ -144,6 +144,13 @@ rewrite /lr ltr_pdivlMr ?q_pos // mul1r -(half_complement R).
 by rewrite ltrD2l ltrN2.
 Qed.
 
+(** Directional sensitivity: replacing a win with a loss strictly raises
+    the single-step likelihood ratio.  Composes [lr_win_lt1] and
+    [lr_lose_gt1]: wins drop the test statistic below 1, losses raise
+    it above 1. *)
+Lemma lr_win_lt_lose : lr true < lr false.
+Proof. exact: lt_trans lr_win_lt1 lr_lose_gt1. Qed.
+
 End BinaryBallot.
 
 (** ** Degradation connection: per-contest bounds imply joint bounds *)
@@ -513,6 +520,30 @@ Proof.
 rewrite (bigD1 x); last exact: gen_F_refl.
 apply: ltr_pwDl; first exact: gen_prod_mu_pos.
 by apply: sumr_ge0 => y _; exact: gen_prod_mu_ge0.
+Qed.
+
+(** At the horizon [N], the natural filtration [gen_F N] forces total
+    agreement: every coordinate [i : 'I_N] satisfies [i < N] so the
+    cell collapses to the singleton [{x}].  This is the full-information
+    limit: at time [N] every ballot outcome is revealed. *)
+Lemma gen_F_at_N (x y : {ffun 'I_N -> C}) :
+  gen_F N x y = (x == y).
+Proof.
+apply/forallP/eqP => [H|-> i].
+- by apply/ffunP => i; apply/eqP/(implyP (H i)); exact: ltn_ord.
+- by apply/implyP => _; rewrite eqxx.
+Qed.
+
+(** At the horizon [N], conditional expectation against [gen_F] collapses
+    to the sample-point value: [E[X | F_N](x) = X(x)]. *)
+Lemma gen_cond_exp_at_N (X : {ffun 'I_N -> C} -> R)
+    (x : {ffun 'I_N -> C}) :
+  @cond_exp R _ gen_prod_mu gen_F X N x = X x.
+Proof.
+apply: cond_exp_measurable.
+- exact: gen_filtration.
+- by move=> y; rewrite gen_F_at_N => /eqP ->.
+- exact: gen_F_cell_pos.
 Qed.
 
 Lemma gen_F_split (n : nat) (Hn : (n < N)%N)
