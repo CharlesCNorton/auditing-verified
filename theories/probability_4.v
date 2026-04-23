@@ -250,6 +250,48 @@ move=> H; rewrite (H (pred1 j)) (bigD1 j) //=.
 by rewrite big1 ?mulr1 // => i /andP [/eqP ->]; rewrite eqxx.
 Qed.
 
+(** Helper: product over a two-element subset picks out the two factors. *)
+Lemma two_element_prod (k : nat) (f : 'I_k -> R) (i j : 'I_k) :
+  i != j ->
+  \prod_(k' < k | (k' == i) || (k' == j)) f k' = f i * f j.
+Proof.
+move=> Hij.
+rewrite (bigD1 i) /=; last by rewrite eqxx.
+congr (_ * _).
+rewrite (eq_bigl (fun k' : 'I_k => k' == j)); last first.
+  move=> k'; apply/idP/idP.
+  - case/andP => /orP [/eqP Hki | /eqP Hkj] Hkne.
+    + by rewrite Hki eqxx in Hkne.
+    + by rewrite Hkj eqxx.
+  - move=> /eqP ->.
+    apply/andP; split; first by rewrite eqxx orbT.
+    by rewrite eq_sym.
+by rewrite big_pred1_eq.
+Qed.
+
+(** Pairwise independence from full independence.  For distinct contest
+    indices [i] and [j], the joint probability [Pr(E_i cap E_j)]
+    factors as [Pr(E_i) * Pr(E_j)].  Instantiates the fully-independent
+    definition at the two-element subset [{i, j}]. *)
+Lemma fully_independent_pairwise (k : nat)
+    (E : 'I_k -> pred Omega) (i j : 'I_k) :
+  events_fully_independent E -> i != j ->
+  Pr (fun x => E i x && E j x) = Pr (E i) * Pr (E j).
+Proof.
+move=> H Hij.
+have HS := H (fun k' : 'I_k => (k' == i) || (k' == j)).
+have Heq1 : Pr (fun x => E i x && E j x) =
+            Pr (fun x => [forall (k' | (k' == i) || (k' == j)), E k' x]).
+  rewrite /Pr; apply: eq_bigl => x.
+  apply/idP/forallP.
+  - move=> /andP [Hi Hj] k'.
+    by apply/implyP; case/orP => /eqP ->.
+  - move=> Hall; apply/andP; split.
+    + by apply: (implyP (Hall i)); rewrite eqxx.
+    + by apply: (implyP (Hall j)); rewrite eqxx orbT.
+by rewrite Heq1 HS two_element_prod.
+Qed.
+
 (** Under independence, the algebraic [joint_pass] matches the
     probabilistic joint probability.  This is the formal bridge
     between the two models. *)
