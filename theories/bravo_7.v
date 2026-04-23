@@ -1223,6 +1223,42 @@ split.
 - by rewrite /false_assurance_hetero.
 Qed.
 
+(** Substantive anytime degradation: for per-contest bounded stopping
+    times, the stopped-value Ville bound holds under the null at each
+    contest.  Explicit coupling to [null_ville_stopped], making the
+    per-contest probability at a bounded stopping time explicit. *)
+Theorem anytime_degradation_stopped
+    (R : realType) (C : finType) (null_mu : C -> R)
+    (null_pos : forall c, 0 < null_mu c)
+    (null_sum1 : \sum_(c : C) null_mu c = 1)
+    (mu_alt : C -> R)
+    (alt_ge0 : forall c, 0 <= mu_alt c)
+    (alt_sum1 : \sum_(c : C) mu_alt c = 1)
+    (N : nat) (HN : (0 < N)%N)
+    (k : nat) (alphas : 'I_k -> R)
+    (Ha0 : forall i, 0 < alphas i)
+    (Ha1 : forall i, alphas i < 1)
+    (taus : 'I_k -> {ffun 'I_N -> C} -> nat)
+    (Htaus_stop : forall i, stopping_time (@null_F C N) (taus i))
+    (Htaus_bd : forall i f, (taus i f <= N)%N) :
+  forall i : 'I_k,
+    @Pr R _ (null_prod_mu null_mu (N:=N))
+      (fun f => (alphas i)^-1 <=
+        stopped_value (rev_M null_mu mu_alt (N:=N)) (taus i) f)
+    <= alphas i.
+Proof.
+move=> i.
+apply: null_ville_stopped.
+- exact: null_pos.
+- exact: null_sum1.
+- exact: alt_ge0.
+- exact: alt_sum1.
+- exact: Ha0.
+- exact: Ha1.
+- exact: Htaus_stop.
+- exact: Htaus_bd.
+Qed.
+
 (* --- Bibliography ---
 
    ballot_mu, lr, lr_expectation_1, lr_Exp_eq1, lr_win_lt1,

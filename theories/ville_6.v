@@ -485,8 +485,10 @@ have H2 := ler_wpM2l (ltW Ha0) H1.
 by rewrite mulrA mulfV ?unitfE ?gt_eqF // mul1r mulr1 in H2.
 Qed.
 
-(** Tighter two-sided bound: [Pr(M n >= 1/alpha)] lies in [[0, 1 - alpha]]
-    when [2 * alpha <= 1]. *)
+(** Two-sided Ville bound: [Pr(M n >= 1/alpha)] lies in [[0, alpha]].
+    Combines [Pr_ge0] with [ville_ineq].  Subsumes the earlier
+    [2 * alpha <= 1] statement, which gave the weaker upper bound
+    [1 - alpha]. *)
 Lemma ville_step_bound (F : nat -> Omega -> Omega -> bool)
     (M : nat -> Omega -> R) (alpha : R) (n : nat) :
   filtration F ->
@@ -494,22 +496,12 @@ Lemma ville_step_bound (F : nat -> Omega -> Omega -> bool)
   (forall k x, 0 < \sum_(y | F k x y) mu y) ->
   (forall k x, 0 <= M k x) ->
   0 < alpha -> alpha < 1 ->
-  2%:R * alpha <= 1 ->
   Exp (M 0) <= 1 ->
-  0 <= @Pr R _ mu (fun x => alpha^-1 <= M n x) <= 1 - alpha.
+  0 <= @Pr R _ mu (fun x => alpha^-1 <= M n x) <= alpha.
 Proof.
-move=> HF Hsup Hcell Hge0 Ha0 Ha1 H2a HExp0.
+move=> HF Hsup Hcell Hge0 Ha0 Ha1 HExp0.
 apply/andP; split; first exact: Pr_ge0.
-have Hv : @Pr R _ mu (fun x => alpha^-1 <= M n x) <= alpha.
-  have Hai : 0 < alpha^-1 by rewrite invr_gt0.
-  have Hm := @markov_ineq (M n) _ Hai (Hge0 n).
-  have He := @supermartingale_Exp_le0 F M n HF Hsup Hcell.
-  have H1 : alpha^-1 * @Pr R _ mu (fun x => alpha^-1 <= M n x) <= 1
-    by exact: le_trans Hm (le_trans He HExp0).
-  have H2 := ler_wpM2l (ltW Ha0) H1.
-  by rewrite mulrA mulfV ?unitfE ?gt_eqF // mul1r mulr1 in H2.
-apply: (le_trans Hv).
-by rewrite lerBrDr -mulr2n -mulr_natl.
+exact: ville_ineq HF Hsup Hcell Hge0 Ha0 Ha1 HExp0.
 Qed.
 
 (** Conditional expectation of an indicator-weighted function factors as
@@ -1285,6 +1277,59 @@ apply: partition_filtration => [n|n|n A HA].
   by apply: Hne; rewrite Hab.
 - by exists A; [exact: HA | apply/subsetP].
 Qed.
+
+(** ** Reverse natural filtration on ballot product spaces *)
+
+(** The reverse natural filtration on [{ffun 'I_N -> C}]: at time [n],
+    [x] and [y] are equivalent iff they agree on all coordinates
+    [>= n].  At [n = 0], equivalence is identity (finest partition);
+    at [n = N], the relation is trivial (coarsest).  The relation
+    coarsens as [n] increases, satisfying [reverse_filtration]. *)
+
+Section ReverseNaturalFiltration.
+
+Variable C : finType.
+Variable N : nat.
+
+Definition rev_nat_F (n : nat) (x y : {ffun 'I_N -> C}) : bool :=
+  [forall i : 'I_N, (n <= i)%N ==> (x i == y i)].
+
+Lemma rev_nat_F_refl n : reflexive (rev_nat_F n).
+Proof.
+by move=> x; apply/forallP => i; apply/implyP => _; rewrite eqxx.
+Qed.
+
+Lemma rev_nat_F_sym n : symmetric (rev_nat_F n).
+Proof.
+move=> x y; apply/forallP/forallP => H i;
+  move/implyP: (H i) => H'; apply/implyP => Hn;
+  by rewrite eq_sym; exact: H'.
+Qed.
+
+Lemma rev_nat_F_trans n : transitive (rev_nat_F n).
+Proof.
+move=> y x z /forallP Hxy /forallP Hyz.
+apply/forallP => i; apply/implyP => Hni.
+by rewrite (eqP (implyP (Hxy i) Hni)) (eqP (implyP (Hyz i) Hni)).
+Qed.
+
+Lemma rev_nat_F_coarsen n x y :
+  rev_nat_F n x y -> rev_nat_F n.+1 x y.
+Proof.
+move=> /forallP H.
+apply/forallP => i; apply/implyP => Hn1i.
+by apply: (implyP (H i)); exact: ltnW.
+Qed.
+
+Lemma rev_nat_filtration :
+  @reverse_filtration {ffun 'I_N -> C} rev_nat_F.
+Proof.
+by split;
+  [exact: rev_nat_F_refl | exact: rev_nat_F_sym |
+   exact: rev_nat_F_trans | exact: rev_nat_F_coarsen].
+Qed.
+
+End ReverseNaturalFiltration.
 
 (* --- Bibliography ---
 
