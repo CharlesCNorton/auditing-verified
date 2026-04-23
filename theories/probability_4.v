@@ -408,6 +408,50 @@ split.
 - by apply: two_pt_false_assurance.
 Qed.
 
+(** ** Fréchet-Hoeffding upper bound achievability *)
+
+(** The two-point distribution at parameter [t] achieves the
+    Fréchet-Hoeffding upper bound on joint pass probability:
+    [Pr(all pass) = 1 - t].  Instantiated at [t = max alpha_j]
+    (when such a max exists and dominates every alpha_j), this gives
+    the sharpest achievable joint-pass probability. *)
+Lemma two_pt_upper_achieves_at_t
+    (R : realType) (k : nat) (t : R) :
+  (0 < k)%N -> 0 <= t -> t <= 1 ->
+  \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+    @two_pt_mu R k t f = 1 - t.
+Proof.
+move=> Hk Ht0 Ht1.
+have H : 1 - (\sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+               @two_pt_mu R k t f) = t.
+  by apply: two_pt_false_assurance.
+set S := \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+          @two_pt_mu R k t f.
+rewrite -/S in H.
+by rewrite -H opprB addrC subrK.
+Qed.
+
+(** Witness: for any [t] dominating all per-contest risk limits, the
+    two-point distribution realizes a marginal-compatible joint
+    distribution with [Pr(all pass) = 1 - t].  Setting [t = max alpha_j]
+    saturates the Fréchet-Hoeffding upper bound. *)
+Lemma two_pt_upper_witness_dominating
+    (R : realType) (k : nat) (alphas : 'I_k -> R) (t : R) :
+  (0 < k)%N ->
+  (forall j : 'I_k, alphas j <= t) ->
+  0 <= t -> t <= 1 ->
+  \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+    @two_pt_mu R k t f = 1 - t /\
+  forall j : 'I_k,
+    \sum_(f : {ffun 'I_k -> bool} | f j) @two_pt_mu R k t f
+    = 1 - t.
+Proof.
+move=> Hk Hle Ht0 Ht1.
+split; first exact: two_pt_upper_achieves_at_t.
+move=> j.
+by apply: two_pt_marginal.
+Qed.
+
 (** ** Axiom audit for probability lemmas *)
 
 Print Assumptions two_pt_mu_sum1.
