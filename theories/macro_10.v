@@ -211,8 +211,135 @@ rewrite {1}H1.
 exact: (@false_assurance_strict_mono R alpha 1 k Ha0 Ha1 Hk).
 Qed.
 
+(** ** Stark-Bonferroni construction *)
+
+(** A concrete, non-vacuous discharge of the operational MACRO
+    soundness hypothesis.  Given per-contest likelihood-ratio
+    supermartingales [LR i] each non-negative with initial
+    expectation at most 1, the normalized sum
+      [combined_M n x := (1/k) * sum_(i < k) LR i n x]
+    is itself a non-negative supermartingale with initial
+    expectation at most 1, and any per-contest threshold crossing
+    at rate [k/alpha] forces the combined statistic above the
+    overall threshold [1/alpha].  This discharges [HM_sound]
+    from explicit per-contest martingale structure, realizing
+    MACRO at the Bonferroni-corrected per-contest rate
+    [alpha/k]. *)
+
+Section MACROBonferroniConstruction.
+
+Variable R : realType.
+Variable Omega : finType.
+Variable mu : Omega -> R.
+Hypothesis mu_ge0 : forall x, 0 <= mu x.
+Hypothesis mu_sum1 : \sum_x mu x = 1.
+
+Variable F : nat -> Omega -> Omega -> bool.
+Hypothesis HF : filtration F.
+Hypothesis Hcell : forall n x, 0 < \sum_(y | F n x y) mu y.
+
+Variable k : nat.
+Hypothesis Hk : (0 < k)%N.
+
+Variable LR : 'I_k -> nat -> Omega -> R.
+Hypothesis HLR_sup : forall i, @supermartingale R _ mu F (LR i).
+Hypothesis HLR_ge0 : forall i n x, 0 <= LR i n x.
+Hypothesis HLR_init : forall i, @Exp R Omega mu (LR i 0) <= 1.
+
+(** Combined statistic: arithmetic mean of per-contest likelihood
+    ratios. *)
+Definition combined_M (n : nat) (x : Omega) : R :=
+  k%:R^-1 * \sum_(i < k) LR i n x.
+
+Lemma combined_M_ge0 (n : nat) (x : Omega) : 0 <= combined_M n x.
+Proof.
+apply: mulr_ge0.
+- by rewrite invr_ge0 ler0n.
+- by apply: sumr_ge0 => i _; exact: HLR_ge0.
+Qed.
+
+Lemma combined_M_supermartingale :
+  @supermartingale R _ mu F combined_M.
+Proof.
+rewrite /combined_M.
+apply: supermartingale_scalar_mul.
+- by rewrite invr_ge0 ler0n.
+- by apply: supermartingale_big_sum.
+Qed.
+
+Lemma combined_M_init : @Exp R Omega mu (combined_M 0) <= 1.
+Proof.
+rewrite /combined_M Exp_scalar_mul Exp_big_sum.
+have Hk_sum : \sum_(i < k) (1 : R) = k%:R.
+  have H : forall n : nat, \sum_(i < n) (1 : R) = n%:R.
+    elim=> [|n IH]; first by rewrite big_ord0.
+    by rewrite big_ord_recr /= IH -natr1.
+  exact: H.
+have Hsum_bound : \sum_(i < k) @Exp R Omega mu (LR i 0) <= k%:R.
+  rewrite -Hk_sum.
+  by apply: ler_sum => i _; exact: HLR_init.
+have Hk_ne0 : (k%:R : R) != 0 by rewrite pnatr_eq0 -lt0n.
+apply: (@le_trans _ _ (k%:R^-1 * k%:R)).
+  apply: ler_wpM2l => //.
+  by rewrite invr_ge0 ler0n.
+by rewrite mulVf.
+Qed.
+
+(** Per-contest threshold-crossing event: LR [i] reaches [k/alpha]. *)
+Variable alpha : R.
+Hypothesis Halpha0 : 0 < alpha.
+Hypothesis Halpha1 : alpha < 1.
+
+Variable n : nat.
+
+Definition bonferroni_wrong (i : 'I_k) : pred Omega :=
+  fun x => k%:R / alpha <= LR i n x.
+
+(** Soundness of the combined statistic: any per-contest threshold
+    crossing forces the combined statistic above the overall
+    threshold. *)
+Lemma combined_M_sound :
+  forall x, (exists i : 'I_k, bonferroni_wrong i x) ->
+  alpha^-1 <= combined_M n x.
+Proof.
+move=> x [i Hi].
+rewrite /combined_M /bonferroni_wrong in Hi *.
+have Hk_pos : (0 : R) < k%:R by rewrite ltr0n.
+have Hk_ne0 : (k%:R : R) != 0 by rewrite gt_eqF.
+have Halpha_ne0 : alpha != 0 by rewrite gt_eqF.
+have : k%:R^-1 * (k%:R / alpha) <= k%:R^-1 * LR i n x.
+  apply: ler_wpM2l => //.
+  by rewrite invr_ge0 ler0n.
+rewrite mulrA mulVf // mul1r.
+move=> Hkey.
+apply: (le_trans Hkey).
+rewrite (bigD1 i) //=.
+apply: ler_wpM2l; first by rewrite invr_ge0 ler0n.
+rewrite lerDl.
+by apply: sumr_ge0 => j _; exact: HLR_ge0.
+Qed.
+
+(** Operational MACRO bound at Bonferroni rate: joint false
+    certification probability is at most [alpha], independent of [k]. *)
+Theorem MACRO_bonferroni_bound :
+  @Pr R Omega mu
+    (fun x => macro_accept combined_M n alpha x &&
+              [exists i : 'I_k, bonferroni_wrong i x]) <= alpha.
+Proof.
+apply: (@macro_operational_bound R Omega mu mu_ge0 k bonferroni_wrong
+          F combined_M n alpha HF Hcell
+          combined_M_supermartingale combined_M_ge0 combined_M_init
+          Halpha0 Halpha1).
+exact: combined_M_sound.
+Qed.
+
+End MACROBonferroniConstruction.
+
 Print Assumptions macro_operational_bound.
 Print Assumptions macro_false_cert_empty.
 Print Assumptions macro_k_independent.
 Print Assumptions macro_shared_bound.
 Print Assumptions macro_beats_hetero.
+Print Assumptions combined_M_supermartingale.
+Print Assumptions combined_M_sound.
+Print Assumptions MACRO_bonferroni_bound.

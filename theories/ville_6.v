@@ -376,6 +376,63 @@ move=> [H1a H1m] [H2a H2m]; split.
 - by move=> n x; rewrite cond_exp_add H1m H2m.
 Qed.
 
+(** A constant process is a supermartingale (in fact a martingale). *)
+Lemma const_supermartingale (F : nat -> Omega -> Omega -> bool) (c : R) :
+  filtration F ->
+  (forall n x, 0 < \sum_(y | F n x y) mu y) ->
+  supermartingale F (fun _ _ => c).
+Proof.
+move=> HF Hcell; split.
+- by [].
+- move=> n x.
+  have -> : cond_exp F (fun _ => c) n x = c.
+    by apply: cond_exp_measurable; [exact: HF | move=> y _ | exact: Hcell].
+  exact: lexx.
+Qed.
+
+(** Finite sums of supermartingales are supermartingales. *)
+Lemma supermartingale_big_sum
+    (F : nat -> Omega -> Omega -> bool) (k : nat)
+    (M : 'I_k -> nat -> Omega -> R) :
+  filtration F ->
+  (forall n x, 0 < \sum_(y | F n x y) mu y) ->
+  (forall i, supermartingale F (M i)) ->
+  supermartingale F (fun n x => \sum_(i < k) M i n x).
+Proof.
+move=> HF Hcell.
+elim: k M => [|k IH] M Hsup.
+- have -> : (fun n x => \sum_(i < 0) M i n x) = (fun _ _ => (0 : R)).
+    by apply: boolp.funext => n; apply: boolp.funext => x;
+       rewrite big_ord0.
+  exact: const_supermartingale.
+- have -> : (fun n x => \sum_(i < k.+1) M i n x) =
+    (fun n x => M ord0 n x +
+                \sum_(i < k) M (lift ord0 i) n x).
+    by apply: boolp.funext => n; apply: boolp.funext => x;
+       rewrite big_ord_recl.
+  apply: supermartingale_sum.
+  + exact: Hsup.
+  + by apply: IH => i; exact: Hsup.
+Qed.
+
+(** Expectation is linear: scalar multiplication. *)
+Lemma Exp_scalar_mul (c : R) (X : Omega -> R) :
+  Exp (fun x => c * X x) = c * Exp X.
+Proof.
+rewrite /Exp mulr_sumr.
+by apply: eq_bigr => x _; rewrite mulrCA.
+Qed.
+
+(** Expectation is linear: finite sums. *)
+Lemma Exp_big_sum (k : nat) (Fe : 'I_k -> Omega -> R) :
+  Exp (fun x => \sum_(i < k) Fe i x) = \sum_(i < k) Exp (Fe i).
+Proof.
+rewrite /Exp.
+transitivity (\sum_x \sum_(i < k) mu x * Fe i x).
+  by apply: eq_bigr => x _; rewrite mulr_sumr.
+by rewrite exchange_big /=.
+Qed.
+
 (** A supermartingale has non-increasing expected value at each step. *)
 Lemma supermartingale_Exp_mono (F : nat -> Omega -> Omega -> bool)
     (M : nat -> Omega -> R) (n : nat) :
