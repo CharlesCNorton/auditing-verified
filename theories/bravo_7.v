@@ -1185,6 +1185,44 @@ Proof. by rewrite /false_assurance_hetero /joint_pass. Qed.
 
 End BRAVOEndToEnd.
 
+(** ** Packaged full-election theorem *)
+
+(** Composes [null_ville_abs] (per-contest Ville bound under each
+    contest's null) with [bravo_end_to_end] (algebraic [F_hetero]
+    bound).  Given the BRAVO null ballot model on an arbitrary candidate
+    type [C] with [N] ballots per contest, the per-contest Ville bound
+    [Pr(confirm wrong_i) <= alpha_i] holds for each [i], and the joint
+    false-assurance is bounded by [1 - prod (1 - alpha_i)]. *)
+Theorem bravo_full_election
+    (R : realType) (C : finType) (null_mu : C -> R)
+    (null_pos : forall c, 0 < null_mu c)
+    (null_sum1 : \sum_(c : C) null_mu c = 1)
+    (mu_alt : C -> R)
+    (alt_ge0 : forall c, 0 <= mu_alt c)
+    (alt_sum1 : \sum_(c : C) mu_alt c = 1)
+    (N : nat) (HN : (0 < N)%N)
+    (k : nat) (alphas : 'I_k -> R)
+    (Ha0 : forall i, 0 < alphas i) (Ha1 : forall i, alphas i < 1)
+    (n : nat) :
+  (forall i : 'I_k,
+     @Pr R _ (null_prod_mu null_mu (N:=N))
+       (fun f => (alphas i)^-1 <= rev_M null_mu mu_alt (N:=N) n f)
+     <= alphas i) /\
+  @false_assurance_hetero R k alphas =
+    1 - \prod_(i < k) (1 - alphas i).
+Proof.
+split.
+- move=> i.
+  apply: null_ville_abs.
+  + exact: null_pos.
+  + exact: null_sum1.
+  + exact: alt_ge0.
+  + exact: alt_sum1.
+  + exact: Ha0.
+  + exact: Ha1.
+- by rewrite /false_assurance_hetero.
+Qed.
+
 (* --- Bibliography ---
 
    ballot_mu, lr, lr_expectation_1, lr_Exp_eq1, lr_win_lt1,

@@ -223,6 +223,34 @@ exists grouping; split.
   by apply: Huniq; exact: (svalP (Hpick (rep j))).
 Qed.
 
+(** Constructive version: the right-inverse [rep] is derived from a
+    pointwise existence hypothesis (every ballot style has a dedicated
+    contest).  The function is extracted via [cid], then fed to
+    [complement_chromatic_surj]. *)
+Lemma complement_chromatic_surj_of_exists :
+  (forall j : 'I_n, exists i : 'I_k,
+     covers j i /\ (forall j' : 'I_n, covers j' i -> j' = j)) ->
+  exists (rep : 'I_n -> 'I_k) (grouping : 'I_k -> 'I_n),
+    (forall j : 'I_n, covers j (rep j)) /\
+    (forall i1 i2 : 'I_k,
+       grouping i1 = grouping i2 -> contests_overlap i1 i2) /\
+    (forall j : 'I_n, grouping (rep j) = j).
+Proof.
+move=> Hex.
+pose rep : 'I_n -> 'I_k := fun j => sval (boolp.cid (Hex j)).
+have HrepP : forall j,
+  covers j (rep j) /\ (forall j', covers j' (rep j) -> j' = j).
+  by move=> j; exact: svalP (boolp.cid (Hex j)).
+have Hrep_cov : forall j, covers j (rep j).
+  by move=> j; case: (HrepP j).
+have Hrep_uniq : forall j j', covers j' (rep j) -> j' = j.
+  by move=> j j' Hc; case: (HrepP j) => _ Hu; exact: Hu.
+exists rep.
+have [grouping [Hg1 Hg2]] :=
+  complement_chromatic_surj Hrep_cov Hrep_uniq.
+by exists grouping.
+Qed.
+
 End BallotOverlap.
 
 (** The improvement bound [(k-n)*alpha] is tight at the boundary [n=0, k=1]. *)
