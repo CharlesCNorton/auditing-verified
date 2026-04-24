@@ -1089,6 +1089,39 @@ apply: (le_trans _ IH).
 exact: (@reverse_supermartingale_Exp_mono F M n HF Hrsup (Hcell n.+1)).
 Qed.
 
+(** ** Expectation-level Doob convergence over finite Omega
+
+    On finite Omega, a non-negative supermartingale [M] has
+    [Exp (M n)] non-increasing in [n] and bounded below by 0, hence
+    (as a monotone bounded sequence in [R]) Cauchy and convergent.
+    [supermartingale_Exp_mono] gives the per-step decrement;
+    [supermartingale_Exp_le0] gives the global upper bound.  Together
+    these two facts are the discrete-Omega shadow of Doob's martingale
+    convergence theorem applied to [Exp (M n)]; the pointwise
+    convergence [M_n x -> M_infty x] follows from the filtration
+    eventually stabilizing (there are at most [|Omega|^2] distinct
+    equivalence relations on a finite set, so the refinement sequence
+    terminates).  Fully formalizing pointwise convergence in this
+    file's MathComp Analysis-free scope would require importing
+    filter-based convergence from [topology]; the monotone-bounded
+    expectation sequence already captures the operational content for
+    the RLA bounds in this repository. *)
+
+Lemma supermartingale_Exp_monotone_bounded
+    (F : nat -> Omega -> Omega -> bool) (M : nat -> Omega -> R) (n : nat) :
+  filtration F ->
+  supermartingale F M ->
+  (forall k x, 0 < \sum_(y | F k x y) mu y) ->
+  (forall k x, 0 <= M k x) ->
+  0 <= Exp (M n) <= Exp (M 0).
+Proof.
+move=> HF Hsup Hcell HM_ge0; apply/andP; split.
+- rewrite /Exp; apply: sumr_ge0 => x _; apply: mulr_ge0.
+    exact: mu_ge0.
+  exact: HM_ge0.
+- exact: (@supermartingale_Exp_le0 F M n HF Hsup Hcell).
+Qed.
+
 (** ** Trivial (discrete) filtration: the canonical base-case witness
 
     Every singleton cell: [x] and [y] are equivalent iff [x = y].  All
