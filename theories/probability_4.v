@@ -29,7 +29,7 @@ From Auditing Require Import auditing_1.
 (** ** Two-point distribution on [{ffun 'I_k -> bool}]                *)
 (* ================================================================== *)
 
-(** Lifts [dep_fa_achievable_measure] to a full finite probability
+(** Lifts [dep_fa_achievable] to a full finite probability
     measure on the product space [{pass, fail}^k] with bigop
     summation.  Realizes the Frechet-Hoeffding extremal under
     maximal positive correlation. *)

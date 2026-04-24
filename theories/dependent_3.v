@@ -15,7 +15,7 @@ From mathcomp Require Import all_boot all_order all_algebra.
 From mathcomp.reals Require Import reals.
 From mathcomp.analysis Require Import sequences exp.
 
-From Auditing Require Import auditing_1.
+From Auditing Require Import auditing_1 probability_4.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -245,64 +245,57 @@ Proof.
 by move=> Hp0 _; rewrite dependence_gap lerBlDr lerDl.
 Qed.
 
-(** Algebraic achievability: setting [p_joint = 1-t] satisfies all marginals and gives [F_dep = t]. *)
+(** Constructive achievability: the explicit two-point distribution
+    [two_pt_mu t] on [{ffun 'I_k -> bool}] realizes any target false
+    assurance level [t] dominating every [alphas j].  Returns the
+    concrete measure with the full bundle of measure-theoretic
+    properties: non-negativity, normalization, per-contest marginal
+    bound, and false-assurance identity. *)
 Lemma dep_fa_achievable (k : nat) (alphas : 'I_k -> R) (t : R) :
-  (forall j : 'I_k, alphas j <= t) -> t <= 1 ->
-  let p := 1 - t in
-  (forall j, p <= 1 - alphas j) /\ 0 <= p /\ 1 - p = t.
-Proof.
-move=> Hle Ht1 /=; repeat split.
-- by move=> j; rewrite lerD2l lerN2; exact: Hle.
-- by r01.
-- by rewrite opprB addrCA subrr addr0.
-Qed.
-
-(* --- Measure-theoretic achievability ---
-   The algebraic compatibility in dep_fa_achievable lifts to a
-   finite discrete probability measure on {pass, fail}^k. The
-   two-point distribution concentrates mass 1-t on the all-pass
-   outcome and mass t on the all-fail outcome — the Frechet-
-   Hoeffding extremal under maximal positive correlation. *)
-
-(** Measure-theoretic achievability: a two-point distribution witnesses any target [t >= max alpha_j]. *)
-Lemma dep_fa_achievable_measure (k : nat) (alphas : 'I_k -> R) (t : R) :
+  (0 < k)%N ->
   (forall j : 'I_k, alphas j <= t) -> 0 <= t -> t <= 1 ->
-  exists (p_pass p_fail : R),
-    (* Non-negative weights summing to 1 *)
-    0 <= p_pass /\ 0 <= p_fail /\ p_pass + p_fail = 1 /\
-    (* Joint pass probability *)
-    p_pass = 1 - t /\
-    (* Marginal bounds: each contest's pass probability <= 1 - alpha_j.
-       Under the two-point distribution, P(contest j passes) = p_pass
-       since contests pass or fail together. *)
-    (forall j, p_pass <= 1 - alphas j).
-Proof.
-move=> Hle Ht0 Ht1; exists (1 - t), t; repeat split.
-- by r01.
-- exact: Ht0.
-- by rewrite subrK.
-- by move=> j; rewrite lerD2l lerN2; exact: Hle.
-Qed.
+  (forall f : {ffun 'I_k -> bool}, 0 <= @two_pt_mu R k t f) /\
+  \sum_(f : {ffun 'I_k -> bool}) @two_pt_mu R k t f = 1 /\
+  (forall j, \sum_(f : {ffun 'I_k -> bool} | f j)
+               @two_pt_mu R k t f <= 1 - alphas j) /\
+  1 - \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+        @two_pt_mu R k t f = t.
+Proof. exact: dep_concrete_bridge_measure. Qed.
 
-(** Concrete dependent sampling bridge: the two-point distribution from
-    [probability_4.v] realizes any dependent false assurance level [t]
-    above the maximum risk limit. The joint pass probability equals [1-t]
-    and each marginal is bounded by [1 - alpha_j]. *)
+(** Marginal pass-probability of the two-point witness equals [1 - t]
+    for every contest, regardless of [alphas], so the marginal bound
+    reduces to [1 - t <= 1 - alphas j], i.e. [alphas j <= t].  The
+    scalar algebraic form of [dep_fa_achievable]. *)
+Lemma dep_fa_achievable_marginal (k : nat) (t : R) (j : 'I_k) :
+  (0 < k)%N -> 0 <= t -> t <= 1 ->
+  \sum_(f : {ffun 'I_k -> bool} | f j) @two_pt_mu R k t f = 1 - t.
+Proof. move=> Hk Ht0 Ht1; exact: two_pt_marginal. Qed.
+
+(** Constructive dependent sampling bridge: the two-point distribution
+    [two_pt_mu t] realizes a dependent joint distribution whose marginal
+    pass probabilities are bounded by [1 - alphas j] and whose false
+    assurance is exactly [t].  Strengthens the scalar existence form of
+    the earlier bridge to an explicit measure witness. *)
 Lemma dep_concrete_bridge (k : nat) (alphas : 'I_k -> R) (t : R) :
   (0 < k)%N ->
   (forall j : 'I_k, alphas j <= t) -> 0 <= t -> t <= 1 ->
-  exists (p_joint : R),
-    (forall j, p_joint <= 1 - alphas j) /\
-    0 <= p_joint /\
-    1 - p_joint = t /\
-    (forall j, alphas j <= 1 - p_joint).
+  (forall f : {ffun 'I_k -> bool}, 0 <= @two_pt_mu R k t f) /\
+  \sum_(f : {ffun 'I_k -> bool}) @two_pt_mu R k t f = 1 /\
+  (forall j, \sum_(f : {ffun 'I_k -> bool} | f j)
+               @two_pt_mu R k t f <= 1 - alphas j) /\
+  1 - \sum_(f : {ffun 'I_k -> bool} | [forall j, f j])
+        @two_pt_mu R k t f = t /\
+  (forall j, alphas j <=
+     1 - \sum_(f : {ffun 'I_k -> bool} | [forall j', f j'])
+           @two_pt_mu R k t f).
 Proof.
 move=> Hk Hle Ht0 Ht1.
-exists (1 - t); repeat split.
-- by move=> j; rewrite lerD2l lerN2.
-- by r01.
-- by rewrite opprB addrCA subrr addr0.
-- by move=> j; rewrite opprB addrCA subrr addr0.
+have [Hnn [Hsum [Hmarg Hfa]]] :=
+  dep_concrete_bridge_measure (R := R) (k := k) (alphas := alphas) (t := t)
+    Hk Hle Ht0 Ht1.
+split; [exact: Hnn|]; split; [exact: Hsum|]; split; [exact: Hmarg|];
+  split; [exact: Hfa|].
+by move=> j; rewrite Hfa; exact: Hle.
 Qed.
 
 (** ** MACRO audit model *)
@@ -475,7 +468,7 @@ Qed.
 
    positive_dependence_reduces_fa,
    negative_dependence_worsens_fa, dependence_gap,
-   dep_fa_achievable, dep_fa_achievable_measure:
+   dep_fa_achievable, dep_fa_achievable_marginal:
      Algebraic consequences of the independence product model.
      Dependence comparison is standard; see P. B. Stark,
      "Risk-limiting postelection audits," IEEE Trans. Inform.

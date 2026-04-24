@@ -1089,6 +1089,84 @@ apply: (le_trans _ IH).
 exact: (@reverse_supermartingale_Exp_mono F M n HF Hrsup (Hcell n.+1)).
 Qed.
 
+(** ** Trivial (discrete) filtration: the canonical base-case witness
+
+    Every singleton cell: [x] and [y] are equivalent iff [x = y].  All
+    information is observable at every time step, so every process is
+    automatically adapted, conditional expectation collapses to the
+    sample-point value, and every non-increasing process is a
+    supermartingale.  Ballot-model constructions instantiate against
+    this filtration as the fully-observed reference case. *)
+
+Definition trivial_filtration (n : nat) (x y : Omega) : bool := x == y.
+
+Lemma trivial_filtration_ok : filtration trivial_filtration.
+Proof.
+split.
+- by move=> n x; rewrite /trivial_filtration eqxx.
+- by move=> n x y; rewrite /trivial_filtration eq_sym.
+- by move=> n x y z; rewrite /trivial_filtration => /eqP -> /eqP ->.
+- by move=> n x y; rewrite /trivial_filtration.
+Qed.
+
+(** Universal adaptedness: every process is adapted to the trivial
+    filtration.  The canonical base-case witness. *)
+Lemma trivial_filtration_universal (M : nat -> Omega -> R) :
+  adapted trivial_filtration M.
+Proof. by move=> n x y; rewrite /trivial_filtration => /eqP ->. Qed.
+
+(** Under the trivial filtration, conditional expectation reduces to the
+    sample-point value when the point has positive mass. *)
+Lemma trivial_cond_exp (X : Omega -> R) (n : nat) (x : Omega) :
+  0 < mu x -> cond_exp trivial_filtration X n x = X x.
+Proof.
+move=> Hmu_pos.
+have Hne : mu x != 0 by rewrite gt_eqF.
+rewrite /cond_exp /trivial_filtration.
+rewrite (bigD1 x) //= big1 ?addr0; last first.
+  by move=> y /andP [/eqP -> /negPf]; rewrite eqxx.
+rewrite [in X in _ / X](bigD1 x) //= big1 ?addr0; last first.
+  by move=> y /andP [/eqP -> /negPf]; rewrite eqxx.
+by rewrite mulrAC divrr ?mul1r // unitfE.
+Qed.
+
+(** Trivial-filtration cell mass equals the point mass [mu x]. *)
+Lemma trivial_cell_mass (n : nat) (x : Omega) :
+  \sum_(y | trivial_filtration n x y) mu y = mu x.
+Proof.
+rewrite /trivial_filtration (bigD1 x) //= big1 ?addr0 //.
+by move=> y /andP [/eqP -> /negPf]; rewrite eqxx.
+Qed.
+
+(** Every pointwise non-increasing process is a supermartingale under
+    the trivial filtration, with pointwise positivity sufficing for
+    cell positivity. *)
+Lemma trivial_nonincreasing_supermartingale (M : nat -> Omega -> R) :
+  (forall x, 0 < mu x) ->
+  (forall n x, M n.+1 x <= M n x) ->
+  supermartingale trivial_filtration M.
+Proof.
+move=> Hmu_pos Hdec; split; first exact: trivial_filtration_universal.
+by move=> n x; rewrite trivial_cond_exp //; exact: Hdec.
+Qed.
+
+(** Every pointwise time-constant process is a martingale under the
+    trivial filtration. *)
+Lemma trivial_time_constant_martingale (M : nat -> Omega -> R) :
+  (forall x, 0 < mu x) ->
+  (forall n x, M n.+1 x = M n x) ->
+  martingale trivial_filtration M.
+Proof.
+move=> Hmu_pos Heq; split; first exact: trivial_filtration_universal.
+by move=> n x; rewrite trivial_cond_exp //; exact: Heq.
+Qed.
+
+(** Constant-in-time, constant-in-space processes are martingales. *)
+Lemma trivial_const_martingale (c : R) :
+  (forall x, 0 < mu x) ->
+  martingale trivial_filtration (fun _ _ => c).
+Proof. by move=> Hmu_pos; apply: trivial_time_constant_martingale. Qed.
+
 End DiscreteVille.
 
 (* Prevent the kernel from unfolding intermediate definitions in
@@ -1370,3 +1448,6 @@ Print Assumptions ville_stopping.
 Print Assumptions doob_maximal.
 Print Assumptions stopped_process_supermartingale.
 Print Assumptions partition_equiv_roundtrip.
+Print Assumptions trivial_filtration_ok.
+Print Assumptions trivial_filtration_universal.
+Print Assumptions trivial_nonincreasing_supermartingale.

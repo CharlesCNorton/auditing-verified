@@ -186,86 +186,14 @@ Qed.
 
 End DegradationConnection.
 
-(** ** Trivial (discrete) filtration construction *)
-
-Section TrivialFiltration.
-
-Variable Omega : finType.
-
-(** [trivial_filtration]: the discrete filtration where every element
-    is equivalent only to itself.  In a sequential test with fully
-    observed draws, [F_n] is the discrete sigma-algebra for all [n]. *)
-Definition trivial_filtration (n : nat) (x y : Omega) : bool :=
-  x == y.
-
-(** The trivial filtration is a valid filtration. *)
-Lemma trivial_filtration_ok :
-  @filtration Omega trivial_filtration.
-Proof.
-split.
-- by move=> n x; rewrite /trivial_filtration eqxx.
-- by move=> n x y; rewrite /trivial_filtration eq_sym.
-- by move=> n x y z; rewrite /trivial_filtration => /eqP -> /eqP ->.
-- by move=> n x y; rewrite /trivial_filtration.
-Qed.
-
-End TrivialFiltration.
-
-(** ** Trivial-filtration martingale properties *)
-
-Section TrivialFiltrationMartingale.
-
-Variable R : realType.
-Variable Omega : finType.
-Variable mu : Omega -> R.
-Hypothesis mu_ge0 : forall x, 0 <= mu x.
-Hypothesis mu_sum1 : \sum_x mu x = 1.
-
-(* Section-local copy of the trivial filtration, avoiding the
-   implicit-argument mismatch between the TrivialFiltration section's
-   Omega parameter and this section's Omega variable. *)
-Let tf : nat -> Omega -> Omega -> bool := fun n x y => x == y.
-
-(** Under the trivial filtration, conditional expectation of any function
-    at any point reduces to the function value itself (since each cell
-    is a singleton). *)
-Lemma trivial_cond_exp (X : Omega -> R) (n : nat) (x : Omega) :
-  0 < mu x ->
-  cond_exp mu tf X n x = X x.
-Proof.
-move=> Hmu_pos.
-have Hne : mu x != 0 by apply/eqP => H0; rewrite H0 ltxx in Hmu_pos.
-rewrite /cond_exp /tf.
-rewrite (bigD1 x) //= big1 ?addr0; last first.
-  by move=> y /andP [/eqP -> /negPf]; rewrite eqxx.
-rewrite [in X in _ / X](bigD1 x) //= big1 ?addr0; last first.
-  by move=> y /andP [/eqP -> /negPf]; rewrite eqxx.
-by rewrite mulrAC divrr ?mul1r // unitfE.
-Qed.
-
-(** A constant process is a martingale under the trivial filtration. *)
-Lemma const_martingale (c : R) :
-  (forall x, 0 < mu x) ->
-  martingale mu tf (fun _ _ => c).
-Proof.
-move=> H; split.
-- by move=> n x y _.
-- by move=> n x; rewrite trivial_cond_exp.
-Qed.
-
-(** A constant process is a supermartingale under the trivial filtration. *)
-Lemma const_supermartingale (c : R) :
-  (forall x, 0 < mu x) ->
-  supermartingale mu tf (fun _ _ => c).
-Proof.
-move=> H; split.
-- by move=> n x y _.
-- by move=> n x; rewrite trivial_cond_exp.
-Qed.
-
-End TrivialFiltrationMartingale.
-
 (** ** N-step product martingale *)
+
+(** The trivial (discrete) filtration and its martingale properties are
+    hoisted into [ville_6.v].  See [trivial_filtration],
+    [trivial_filtration_ok], [trivial_filtration_universal],
+    [trivial_cond_exp], [trivial_cell_mass],
+    [trivial_nonincreasing_supermartingale],
+    [trivial_time_constant_martingale], [trivial_const_martingale]. *)
 
 Section ProductMartingale.
 
@@ -303,33 +231,19 @@ Lemma product_lr_step (p : R) (bs : nat -> bool) (n : nat) :
   product_lr p bs n.+1 = product_lr p bs n * lr p (bs n).
 Proof. by rewrite /product_lr big_ord_recr. Qed.
 
-(** [product_lr_Exp0_le1]: the initial expectation of the product
-    likelihood ratio is at most 1.  This is the base case that
-    feeds into Ville's inequality via [ville_ineq].
+End ProductMartingale.
+
+(** ** Product likelihood ratio: initial expectation bound *)
+
+(** The initial expectation of the product likelihood ratio is at most
+    1.  This is the base case that feeds into Ville's inequality via
+    [ville_ineq].
 
     The N-step martingale property (E[product_lr(n+1) | F_n] =
     product_lr(n)) follows from [multiplicative_martingale_step]
     (below): since product_lr(n+1) = product_lr(n) * lr(x_n) where
     product_lr(n) is F_n-measurable and E[lr | F_n] = 1 by the
     conditional independence of the n-th ballot draw. *)
-Lemma product_lr_Exp0_le1 (p : R) (n : nat) :
-  2%:R^-1 < p -> p < 1 ->
-  forall (Omega : finType) (mu : Omega -> R)
-    (mu_ge0 : forall x, 0 <= mu x) (mu_sum1 : \sum_x mu x = 1)
-    (outcome : Omega -> nat -> bool),
-    (forall x, product_lr p (outcome x) 0 = 1) ->
-    @Exp R Omega mu (fun x => product_lr p (outcome x) 0) <= 1.
-Proof.
-move=> Hp Hp1 Omega0 mu0 Hge0 Hsum1 outcome H0.
-have -> : (fun x => product_lr p (outcome x) 0) = (fun _ => (1 : R)).
-  by apply: boolp.funext => x; rewrite H0.
-rewrite /Exp (eq_bigr (fun x => mu0 x)); last by move=> x _; rewrite mulr1.
-by rewrite Hsum1.
-Qed.
-
-End ProductMartingale.
-
-(** ** Product likelihood ratio: initial expectation bound (refactored) *)
 
 Section ProductLRExp0.
 
@@ -343,9 +257,7 @@ Hypothesis mu_ge0 : forall x, 0 <= mu x.
 Hypothesis mu_sum1 : \sum_x mu x = 1.
 Variable outcome : Omega -> nat -> bool.
 
-(** Initial expectation of the product likelihood ratio is at most 1,
-    given that [product_lr] starts at 1 for every sample point. *)
-Lemma product_lr_Exp0_le1' :
+Lemma product_lr_Exp0_le1 :
   (forall x, product_lr p (outcome x) 0 = 1) ->
   @Exp R Omega mu (fun x => product_lr p (outcome x) 0) <= 1.
 Proof.

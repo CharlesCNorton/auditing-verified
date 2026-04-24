@@ -224,9 +224,8 @@ exists grouping; split.
 Qed.
 
 (** Constructive version: the right-inverse [rep] is derived from a
-    pointwise existence hypothesis (every ballot style has a dedicated
-    contest).  The function is extracted via [cid], then fed to
-    [complement_chromatic_surj]. *)
+    pointwise existence hypothesis by [pickP] over the finite type
+    ['I_k] with a decidable predicate.  Axiom-free: no [cid]. *)
 Lemma complement_chromatic_surj_of_exists :
   (forall j : 'I_n, exists i : 'I_k,
      covers j i /\ (forall j' : 'I_n, covers j' i -> j' = j)) ->
@@ -237,10 +236,23 @@ Lemma complement_chromatic_surj_of_exists :
     (forall j : 'I_n, grouping (rep j) = j).
 Proof.
 move=> Hex.
-pose rep : 'I_n -> 'I_k := fun j => sval (boolp.cid (Hex j)).
-have HrepP : forall j,
-  covers j (rep j) /\ (forall j', covers j' (rep j) -> j' = j).
-  by move=> j; exact: svalP (boolp.cid (Hex j)).
+have Hpick_rep : forall j : 'I_n,
+  {i : 'I_k | covers j i /\ (forall j' : 'I_n, covers j' i -> j' = j)}.
+  move=> j.
+  pose P (i : 'I_k) := covers j i &&
+    [forall j' : 'I_n, covers j' i ==> (j' == j)].
+  case: (pickP P) => [i /andP [Hc /forallP Hu]|Hnone].
+  - exists i; split; first exact: Hc.
+    by move=> j' Hj'; apply/eqP; apply: (implyP (Hu j')).
+  - exfalso; case: (Hex j) => i [Hc Hu].
+    have HPi : P i.
+      rewrite /P Hc andTb; apply/forallP => j'; apply/implyP => H.
+      by apply/eqP; exact: Hu.
+    by move: (Hnone i); rewrite HPi.
+pose rep j := sval (Hpick_rep j).
+have HrepP : forall j, covers j (rep j) /\
+                       (forall j', covers j' (rep j) -> j' = j).
+  by move=> j; exact: svalP (Hpick_rep j).
 have Hrep_cov : forall j, covers j (rep j).
   by move=> j; case: (HrepP j).
 have Hrep_uniq : forall j j', covers j' (rep j) -> j' = j.
@@ -275,3 +287,4 @@ Print Assumptions overlap_refl.
 Print Assumptions overlap_improvement.
 Print Assumptions overlap_improvement_le.
 Print Assumptions complement_chromatic_le_styles.
+Print Assumptions complement_chromatic_surj_of_exists.
