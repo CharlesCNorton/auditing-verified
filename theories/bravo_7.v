@@ -783,6 +783,71 @@ Qed.
 
 End GeneralBallot.
 
+(** ** Non-negative null distribution *)
+
+(** The time-varying product [gen_M] remains a supermartingale when the
+    null distribution [mu0] is only non-negative (with [mu0_sum1 = 1]),
+    not strictly positive.  In cells whose fixed coordinates include a
+    zero-mass candidate, the cell mass collapses to 0 and the
+    conditional expectation evaluates to 0 via MathComp's [0^-1 = 0]
+    convention; the supermartingale inequality reduces to the
+    non-negativity of [gen_M].  For cells with positive mass, the
+    argument of [gen_M_supermartingale] applies unchanged.  This
+    handles contests with impossible-under-null candidates. *)
+Lemma gen_M_supermartingale_nn
+    (R : realType) (C : finType) (mu0 : C -> R)
+    (Hmu0_ge0 : forall c : C, 0 <= mu0 c)
+    (Hmu0_sum1 : \sum_(c : C) mu0 c = 1)
+    (gen_lr : C -> R)
+    (Hgen_lr_ge0 : forall c, 0 <= gen_lr c)
+    (Hgen_lr_exp1 : \sum_(c : C) mu0 c * gen_lr c = 1)
+    (N : nat) :
+  @supermartingale R {ffun 'I_N -> C}
+    (@gen_prod_mu R C mu0 N)
+    (@gen_F C N)
+    (@gen_M R C gen_lr N).
+Proof.
+split.
+- by move=> n x y Hxy; exact: gen_M_adapted Hxy.
+- move=> n x.
+  set den := \sum_(f | @gen_F C N n x f) @gen_prod_mu R C mu0 N f.
+  have Hden_ge0 : 0 <= den.
+    by apply: sumr_ge0 => f _; apply: prodr_ge0 => i _; exact: Hmu0_ge0.
+  have Hgen_M_ge0 : forall m f, 0 <= @gen_M R C gen_lr N m f.
+    by move=> m f; apply: prodr_ge0 => i _; exact: Hgen_lr_ge0.
+  case: (eqVneq den 0) => [Hden_zero|Hden_nonzero].
+    have -> : @cond_exp R _ (@gen_prod_mu R C mu0 N) (@gen_F C N)
+              (@gen_M R C gen_lr N n.+1) n x = 0.
+      by rewrite /cond_exp -/den Hden_zero invr0 mulr0.
+    exact: Hgen_M_ge0.
+  have Hden : 0 < den by rewrite lt_neqAle eq_sym Hden_nonzero Hden_ge0.
+  case: (ltnP n N) => Hn.
+  + set j := Ordinal Hn.
+    rewrite /cond_exp -/den.
+    have Hnum : \sum_(f | @gen_F C N n x f) @gen_prod_mu R C mu0 N f *
+                @gen_M R C gen_lr N n.+1 f =
+      @gen_M R C gen_lr N n x *
+      \sum_(f | @gen_F C N n x f) @gen_prod_mu R C mu0 N f * gen_lr (f j).
+      rewrite mulr_sumr; apply: eq_bigr => f Hf.
+      rewrite (@gen_M_step R C gen_lr N n Hn f) mulrCA.
+      by rewrite -(@gen_M_adapted R C gen_lr N n x f Hf).
+    rewrite Hnum -mulrA.
+    have HcLR := @gen_cond_exp_lr R C mu0 Hmu0_sum1 gen_lr Hgen_lr_exp1
+                   N n Hn x Hden.
+    by rewrite /cond_exp -/den in HcLR; rewrite HcLR mulr1.
+  + have HM : @gen_M R C gen_lr N n.+1 x = @gen_M R C gen_lr N n x.
+      rewrite /gen_M; apply: eq_bigl => i.
+      by rewrite (leq_trans (ltn_ord i) Hn)
+                 (leq_trans (ltn_ord i) (leqW Hn)).
+    rewrite (@cond_exp_measurable R {ffun 'I_N -> C}
+      (@gen_prod_mu R C mu0 N) (@gen_F C N)
+      (@gen_M R C gen_lr N n.+1) n x (gen_filtration C N)).
+    * by rewrite HM.
+    * move=> f /forallP Hf; rewrite /gen_M; apply: eq_bigr => i _.
+      by rewrite (eqP (implyP (Hf i) (leq_trans (ltn_ord i) Hn))).
+    * exact: Hden.
+Qed.
+
 (** ** Binary ballot instantiation *)
 
 (** The binary (BRAVO) ballot model is the special case of the general

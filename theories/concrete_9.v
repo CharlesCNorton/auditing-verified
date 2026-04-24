@@ -525,6 +525,38 @@ Lemma search_k_unfold (oma omd : Q) (k : nat) (fuel : nat) (acc : Q) :
 Proof. by []. Qed.
 
 Close Scope Q_scope.
+Close Scope ring_scope.
+Open Scope nat_scope.
+
+(** ** Structural properties of search_k *)
+
+(** [search_k] output is bounded above by [addn k0 fuel]. *)
+Lemma search_k_upper (oma omd : Q) (fuel k0 : nat) (acc : Q) :
+  leq (search_k oma omd k0 fuel acc) (addn k0 fuel).
+Proof.
+elim: fuel k0 acc => [|f IH] k0 acc; first by rewrite addn0 leqnn.
+rewrite search_k_unfold; case: (Qle_bool acc omd).
+- exact: leq_addr.
+- rewrite -addSnnS; exact: IH.
+Qed.
+
+(** [search_k] output is bounded below by [k0]. *)
+Lemma search_k_lower (oma omd : Q) (fuel k0 : nat) (acc : Q) :
+  leq k0 (search_k oma omd k0 fuel acc).
+Proof.
+elim: fuel k0 acc => [|f IH] k0 acc; first by rewrite leqnn.
+rewrite search_k_unfold; case: (Qle_bool acc omd); first by rewrite leqnn.
+by apply: leq_trans (IH k0.+1 _); exact: leqW.
+Qed.
+
+(** [min_k] is bounded by the fuel cap. *)
+Lemma min_k_bounded (alpha delta : Q) :
+  leq (min_k alpha delta) 10000.
+Proof.
+rewrite /min_k.
+have -> : 10000 = addn 0 10000 by rewrite add0n.
+exact: search_k_upper.
+Qed.
 
 (* --- Extraction to OCaml ---
    The search_k and min_k functions are purely computational (no
