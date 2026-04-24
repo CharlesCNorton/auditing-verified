@@ -1361,6 +1361,22 @@ rewrite /fcr ler_pdivrMr // mulrAC ler_pdivlMr // !mulrDr.
 by rewrite [V * S]mulrC lerD2r ler_wpM2r // ltW.
 Qed.
 
+(** Tightness witness: when each wrong contest's pass probability
+    saturates its risk limit [pass_prob i = alphas i], the FCR attains
+    [S/(c+S)] exactly.  Proves the [fcr_tight_bound] bound is sharp —
+    no general improvement is possible without additional hypotheses. *)
+Lemma fcr_saturates :
+  (num_wrong < k)%N ->
+  (forall i, wrong i -> pass_prob i = alphas i) ->
+  fcr = (\sum_(i < k | wrong i) alphas i) /
+        ((k - num_wrong)%:R + \sum_(i < k | wrong i) alphas i).
+Proof.
+move=> Hlt Hsat.
+have HV : false_cert_count = \sum_(i < k | wrong i) alphas i.
+  rewrite /false_cert_count; apply: eq_bigr => i Hi; exact: Hsat.
+by rewrite /fcr HV.
+Qed.
+
 (** [fcr_tight_bound] is strictly tighter than [fcr_first_bound]
     when [V > 0] (at least one wrong contest passes with positive
     probability): [S/(c+S) < S/c]. *)

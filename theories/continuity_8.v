@@ -73,8 +73,31 @@ congr (1 - _ * _).
 by apply: eq_bigr => i Hi; rewrite (negbTE Hi).
 Qed.
 
+(** [false_assurance_hetero] is affine in each coordinate separately:
+    as a function of the single variable [t] (with all other
+    coordinates held fixed), it equals [a + t * b] where [a] and [b]
+    depend only on the other coordinates.  Since affine functions are
+    C-infinity, this gives smoothness along every coordinate axis. *)
+Lemma false_assurance_hetero_coord_affine (k : nat)
+    (c : 'I_k -> R) (j : 'I_k) :
+  exists a b : R,
+    (fun t : R^o =>
+       @false_assurance_hetero R k (fun i => if i == j then t else c i)
+       : R^o) =
+    (fun t : R^o => a + t * b : R^o).
+Proof.
+set C := \prod_(i < k | i != j) (1 - c i).
+exists (1 - C), C.
+apply: boolp.funext => t'.
+rewrite /false_assurance_hetero (bigD1 j) //= eqxx.
+have Heq : \prod_(i < k | i != j) (1 - (if i == j then t' else c i)) = C.
+  by apply: eq_bigr => i Hi; rewrite (negbTE Hi).
+by rewrite Heq mulrBl mul1r opprB addrA addrAC.
+Qed.
+
 End ContinuityAndSmoothness.
 
 Print Assumptions false_assurance_continuous_alpha.
 Print Assumptions false_assurance_hetero_continuous_coord.
 Print Assumptions false_assurance_hetero_derivable_coord.
+Print Assumptions false_assurance_hetero_coord_affine.

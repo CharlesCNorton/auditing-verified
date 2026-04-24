@@ -270,6 +270,32 @@ Qed.
 
 End ProductLRExp0.
 
+(** ** Cumulative directional sensitivity *)
+
+(** For any outcome sequence of length [n] under the null [p > 1/2],
+    the all-loss sequence maximizes the cumulative product of
+    likelihood ratios.  Losses are unexpected under the null and raise
+    [lr]; wins are expected and lower [lr].  Replacing any win with a
+    loss does not decrease the product; by induction the all-loss
+    sequence is the pointwise maximum. *)
+Lemma lr_cumulative_lose_max (R : realType) (p : R) (bs : nat -> bool) (n : nat) :
+  2%:R^-1 < p -> p < 1 ->
+  @product_lr R p bs n <= @product_lr R p (fun _ => false) n.
+Proof.
+move=> Hp Hp1.
+elim: n bs => [|n IH] bs; first by rewrite /product_lr !big_ord0.
+rewrite /product_lr !big_ord_recr /=.
+apply: ler_pM.
+- by apply: prodr_ge0 => i _; apply: (@lr_ge0 R p Hp Hp1).
+- exact: (@lr_ge0 R p Hp Hp1 (bs n)).
+- exact: IH.
+- case Hbs: (bs n).
+  + apply: ltW; apply: (@lt_trans _ _ 1).
+    * exact: (@lr_win_lt1 R p Hp).
+    * exact: (@lr_lose_gt1 R p Hp).
+  + exact: lexx.
+Qed.
+
 (** ** Degradation connection *)
 
 (** End-to-end: for [k] independent contests, each with a per-contest
