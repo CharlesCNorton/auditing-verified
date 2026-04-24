@@ -1062,8 +1062,13 @@ move=> Ha Hps; rewrite /false_assurance_hetero /joint_pass lerD2l lerN2.
 by apply: ler_prod.
 Qed.
 
-(** Anytime degradation: the bound holds at any collection of stopping times. *)
-Lemma anytime_degradation (k : nat)
+(** Anytime degradation (interface lemma): a direct corollary of
+    [false_assurance_hetero_worst_case], stated with per-contest
+    stopping times.  The substantive joint-filtration version with a
+    single global stopping time is [anytime_degradation_joint] in
+    [bravo_7.v], which derives the Bonferroni bound from Ville's
+    inequality applied to [k] likelihood-ratio supermartingales. *)
+Lemma anytime_degradation_interface (k : nat)
     (alphas : 'I_k -> R) (pass_prob : 'I_k -> nat -> R)
     (tau : 'I_k -> nat) :
   (forall i, 0 <= alphas i <= 1) ->
@@ -1507,7 +1512,7 @@ Print Assumptions ln_threshold_bound_hetero.
 Print Assumptions converse_ln_bound_hetero.
 Print Assumptions false_assurance_lipschitz.
 Print Assumptions false_assurance_hetero_worst_case.
-Print Assumptions anytime_degradation.
+Print Assumptions anytime_degradation_interface.
 Print Assumptions conservative_bound.
 Print Assumptions conservative_strict.
 Print Assumptions conservative_tight.

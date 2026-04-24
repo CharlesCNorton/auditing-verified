@@ -265,6 +265,37 @@ Qed.
 
 End BallotOverlap.
 
+(** ** Maricopa County 2024 covers instantiation *)
+
+(** A concrete [covers] matrix for Maricopa County's 2024 General
+    Election: 265 contests sorted into 80 ballot styles by [val i mod 80].
+    Every contest is covered by its modular style; the resulting
+    chromatic grouping discharges the [full_cov] hypothesis and
+    witnesses the 80-group structure used by [bridge_maricopa_80] in
+    [concrete_9.v]. *)
+
+Definition maricopa_covers (j : 'I_80) (i : 'I_265) : bool :=
+  modn (val i) 80 == val j.
+
+Lemma maricopa_full_cov (i : 'I_265) : exists j : 'I_80, maricopa_covers j i.
+Proof.
+have Hmod : (modn (val i) 80 < 80)%N by apply: ltn_pmod.
+by exists (Ordinal Hmod); rewrite /maricopa_covers /= eqxx.
+Qed.
+
+(** The 80-group chromatic witness for Maricopa: a grouping
+    [grouping : 'I_265 -> 'I_80] such that contests in the same group
+    share a ballot style (and hence overlap in audit evidence). *)
+Lemma maricopa_80_groups_valid :
+  exists grouping : 'I_265 -> 'I_80,
+    forall i1 i2 : 'I_265,
+      grouping i1 = grouping i2 ->
+      @contests_overlap 265 80 maricopa_covers i1 i2.
+Proof.
+exact: (@complement_chromatic_le_styles 265 80 maricopa_covers
+          maricopa_full_cov).
+Qed.
+
 (** The improvement bound [(k-n)*alpha] is tight at the boundary [n=0, k=1]. *)
 Lemma overlap_improvement_le_tight_boundary (R : realType) (alpha : R) :
   false_assurance alpha 1 - false_assurance alpha 0 = (1 - 0)%:R * alpha.

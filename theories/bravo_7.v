@@ -1018,7 +1018,7 @@ Qed.
     [N].  Combining [ville_stopping] with [rev_M]'s supermartingale
     property yields the per-contest false-certification bound at
     any such stopping time, which is precisely the hypothesis that
-    [anytime_degradation] in [auditing_1.v] requires. *)
+    [anytime_degradation_interface] in [auditing_1.v] requires. *)
 
 (** At any bounded stopping time [tau <= N], the probability that
     the reversed likelihood ratio exceeds [1/alpha] at the stopping
@@ -1297,8 +1297,93 @@ Qed.
      Stochastic Processes, Wiley, 1953, Ch. VII.
 *)
 
+(** ** Joint anytime degradation (Bonferroni) *)
+
+(** Finite subadditivity: the probability of any of [k] events occurring
+    is at most the sum of the per-event probabilities.  Iterates the
+    pairwise [Pr_subadditive] of [probability_4.v] via a single exchange
+    of summations. *)
+Lemma Pr_subadditive_big (R : realType) (Omega : finType) (mu : Omega -> R)
+    (Hmu : forall x, 0 <= mu x) (k : nat) (E : 'I_k -> pred Omega) :
+  @Pr R Omega mu (fun x => [exists i, E i x])
+  <= \sum_(i < k) @Pr R Omega mu (E i).
+Proof.
+elim: k E => [|k IH] E.
+  rewrite big_ord0 /Pr.
+  have Hempty : forall x : Omega, [exists i : 'I_0, E i x] = false.
+    move=> x; apply/negbTE/negP => /existsP [i _].
+    by have := ltn_ord i; rewrite ltn0.
+  rewrite (eq_bigl xpred0); first by rewrite big_pred0_eq; exact: lexx.
+  by move=> x; exact: Hempty.
+rewrite big_ord_recr /=.
+have split_ev : forall x, [exists i : 'I_k.+1, E i x] =
+  E ord_max x || [exists i : 'I_k, E (widen_ord (leqnSn k) i) x].
+  move=> x; apply/idP/idP.
+  - move/existsP => [i Hi].
+    case: (ltnP i k) => Hik.
+    + apply/orP; right; apply/existsP; exists (Ordinal Hik).
+      suff -> : widen_ord (leqnSn k) (Ordinal Hik) = i by exact: Hi.
+      by apply: val_inj.
+    + apply/orP; left.
+      have Heq : i = ord_max.
+        apply: val_inj => /=.
+        have := ltn_ord i; rewrite ltnS => Hi_le_k.
+        by apply/eqP; rewrite eqn_leq Hi_le_k Hik.
+      by rewrite -Heq; exact: Hi.
+  - move/orP => [Hmax|/existsP [i Hi]].
+    + by apply/existsP; exists ord_max.
+    + by apply/existsP; exists (widen_ord (leqnSn k) i).
+have Hev_eq : (fun x => [exists i : 'I_k.+1, E i x]) =
+  (fun x => E ord_max x ||
+            [exists i : 'I_k, E (widen_ord (leqnSn k) i) x]).
+  by apply: boolp.funext => x; exact: split_ev.
+rewrite Hev_eq.
+apply: (@le_trans _ _
+  (@Pr R Omega mu (E ord_max) +
+   @Pr R Omega mu (fun x => [exists i : 'I_k, E (widen_ord (leqnSn k) i) x]))).
+  exact: Pr_subadditive.
+rewrite addrC; apply: lerD; first exact: lexx.
+exact: IH.
+Qed.
+
+(** Joint anytime degradation (Bonferroni): with [k] per-contest
+    likelihood-ratio supermartingales sharing a single filtration and
+    a single global bounded stopping time [tau], the probability that
+    at least one contest's test statistic crosses its Ville threshold
+    at [tau] is bounded by the sum of per-contest risk limits.  This is
+    the joint version of [anytime_degradation_stopped]: instead of
+    per-contest stopping times, every contest stops at the same global
+    [tau]. *)
+Theorem anytime_degradation_joint
+    (R : realType) (Omega : finType) (mu : Omega -> R)
+    (mu_ge0 : forall x, 0 <= mu x) (mu_sum1 : \sum_x mu x = 1)
+    (F : nat -> Omega -> Omega -> bool) (HF : filtration F)
+    (Hcell : forall k x, 0 < \sum_(y | F k x y) mu y)
+    (k : nat) (alphas : 'I_k -> R)
+    (Ha0 : forall i, 0 < alphas i) (Ha1 : forall i, alphas i < 1)
+    (LR : 'I_k -> nat -> Omega -> R)
+    (HLR_sup : forall i, @supermartingale R Omega mu F (LR i))
+    (HLR_ge0 : forall i n x, 0 <= LR i n x)
+    (HLR_init : forall i, @Exp R Omega mu (LR i 0) <= 1)
+    (N : nat) (tau : Omega -> nat) (Htau_stop : stopping_time F tau)
+    (Htau_bd : forall x, (tau x <= N)%N) :
+  @Pr R Omega mu
+    (fun x => [exists i, (alphas i)^-1 <= stopped_value (LR i) tau x])
+  <= \sum_(i < k) alphas i.
+Proof.
+apply: (@le_trans _ _
+  (\sum_(i < k) @Pr R Omega mu
+     (fun x => (alphas i)^-1 <= stopped_value (LR i) tau x))).
+  exact: Pr_subadditive_big.
+apply: ler_sum => i _.
+exact: (@ville_stopping R Omega mu mu_ge0 F (LR i) (alphas i) tau N
+          HF (HLR_sup i) Htau_stop Hcell (HLR_ge0 i) Htau_bd
+          (Ha0 i) (Ha1 i) (HLR_init i)).
+Qed.
+
 Print Assumptions lr_expectation_1.
 Print Assumptions degradation_from_per_contest.
 Print Assumptions trivial_filtration_ok.
 Print Assumptions gen_M_ville.
 Print Assumptions ballot_M_ville.
+Print Assumptions anytime_degradation_joint.
