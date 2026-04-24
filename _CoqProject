@@ -10,4 +10,8 @@ theories/continuity_8.v
 theories/concrete_9.v
 theories/plurality_3.v
 theories/macro_10.v
+theories/shangrla_11.v
+theories/alpha_12.v
+theories/comparison_13.v
+theories/stratified_14.v
 theories/all.v

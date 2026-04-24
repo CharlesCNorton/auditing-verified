@@ -9,4 +9,8 @@ From Auditing Require Export
   continuity_8
   concrete_9
   plurality_3
-  macro_10.
+  macro_10
+  shangrla_11
+  alpha_12
+  comparison_13
+  stratified_14.
